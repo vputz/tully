@@ -1,0 +1,13 @@
+- Consider sente (github.com/ptaoussanis/sente) for websocket service async plumbing
+  - Look at danielsz sente components for system (exciting)
+- Compojure-api for REST version 
+- Maybe martian for consuming REST interface? https://github.com/oliyh/martian
+- Probably useful: http://mmcgrana.github.io/2010/07/develop-deploy-clojure-web-applications.html
+- Text and data mining for researchers http://tdmsupport.crossref.org/researchers/ 
+- CrossRef Rest API: https://github.com/CrossRef/rest-api-doc/blob/master/rest_api.md
+- Jars are at c:\users\username\.m2
+- boot show -p prints graph of dep conflicts (how to resolve?)
+- zaiste.net/2014/02/web_applications_in_clojure_all_the_way_with_compojure_and_om/
+- problem with restarting server with address already in use is solvable by delaying even 300ms for server
+  to shut down; investigate rewriting component
+- magomimmo modern-cljs tutorials work with boot

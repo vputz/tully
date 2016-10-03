@@ -6,8 +6,6 @@
 
 ; much from http://masnun.com/2016/03/20/web-scraping-with-clojure.html
 
-(def test-doi "10.1007/s10955-009-9826-x")
-(def bad-doi "aoeuhnts")
 
 (defn doi-url [doi]
   (-> "http://scholar.google.com/scholar"

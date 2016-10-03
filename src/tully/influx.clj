@@ -2,7 +2,7 @@
   (:require [capacitor.core :as cap]
             [environ.core :refer [env]]
             [com.stuartsierra.component :as component]
-            [clojure.tools.logging :as log]))
+            [taoensso.timbre :as log]))
 
 (defrecord Influx [host port db]
   component/Lifecycle
@@ -16,7 +16,7 @@
     (do
       (log/info "Stopping influx")
       (-> component
-          (assoc component :client nil )))))
+          (dissoc component :client)))))
 
 
 (defn new-influx-db
@@ -24,3 +24,7 @@
    (map->Influx {}))
   ([host port db]
    (map->Influx {:host host :port port :db db})))
+
+(defn add-doi-cites [component doi cites metric]
+               (cap/write-point (:client component) {:measurement metric
+                                                 :fields {"value" cites}}))
