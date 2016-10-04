@@ -1,0 +1,4 @@
+{:require [tully-cljs.core]
+ :init-fns [tully-cljs.core/main]
+ :compiler-options {:asset-path "js/main.out"}
+}

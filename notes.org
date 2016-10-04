@@ -11,3 +11,5 @@
 - problem with restarting server with address already in use is solvable by delaying even 300ms for server
   to shut down; investigate rewriting component
 - magomimmo modern-cljs tutorials work with boot
+- curiously, actual path name to .cljs.edn files determines output; this was decided for purposes 
+  of boot, which threads filesets so that you shouldn't override cljs compiler output-to and output-dir

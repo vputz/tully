@@ -9,12 +9,12 @@
 (defroutes main-routes
   (GET "/foo" []
        (html5 [:head [:title "UR HELLO PAGE"]]
-              [:body  [:h1 "Hello"] [:p [:i "hello"] " world"]
-               (include-js "main.js")]))
+              [:body  [:h1 "Hello"] [:p [:i "hello"] " world" [:div {:id "container"}]]
+               (include-js "js/main.js")]))
+  (route/resources "/")
   (route/not-found "PAGE NOT FOUND"))
 
 ;;compojure resources?  compojure.route/resources "/" serves from resources/public and that's implicit?
-
 (def app
   (-> main-routes
       (wrap-defaults site-defaults)))

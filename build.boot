@@ -9,6 +9,7 @@
                           [org.clojure/clojurescript "1.9.229"]
                           [adzerk/boot-cljs "1.7.228-1"]
                           [adzerk/boot-reload "0.4.12"]
+                          [pandeiro/boot-http "0.7.3"]
                           [enlive "1.1.6"]
                           [hiccup "1.0.5"]
                           [http-kit "2.1.18"]
@@ -23,7 +24,8 @@
                           [org.danielsz/system "0.3.2-SNAPSHOT"]
                           [clojurewerkz/quartzite "2.0.0"]
                           [boot-environ "1.1.0"]]
-          :source-paths '#{"src/"})
+          :source-paths '#{"src/"}
+          :resource-paths '#{"resources/"})
 
 (task-options!
  pom {:project 'tully
@@ -31,12 +33,14 @@
  aot {:namespace #{'tully.main}
       :all true}
  jar {:main 'tully.main}
- target {:dir #{"out"}}
- )
+ target {:dir #{"target"}}
+ (cljs 
+  :optimizations :none) )
 
 (require '[boot.repl]
          '[adzerk.boot-cljs :refer [cljs]]
          '[adzerk.boot-reload :refer [reload]]
+         '[pandeiro.boot-http :refer [serve]]
          '[environ.boot :refer [environ]]
          '[tully.systems :refer [dev-system]]
          '[system.boot :refer [system run]]
@@ -53,10 +57,13 @@
                   :influx-host "127.0.0.1"
                   :influx-port 8086
                   :influx-db "tully-metrics"})
+   ;; (serve :dir "target"
+   ;;        :handler 'tully.handler/app
+   ;;        :httpkit true)
    (watch :verbose true)
    (cljs 
     :optimizations :none)
-   (target :dir #{"target"})
+;;   (target :dir #{"target"})
    (system :sys #'dev-system
            :auto true
            :files ["handler.clj" "systems.clj"])
