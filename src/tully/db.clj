@@ -1,6 +1,7 @@
 (ns tully.db
   (:require [monger.core :as mg]
-            [monger.collection :as mc])
+            [monger.collection :as mc]
+            [taoensso.timbre :as log])
   (:import [org.bson.types ObjectId]
            [com.mongodb DB WriteConcern]))
 
@@ -31,6 +32,9 @@
 
 (defn get-user [db username]
   (first (mc/find-maps db "users" {:name username})))
+
+(defn add-user [db username password-hash]
+  (log/info "Creating user " username " with password hash " password-hash))
 
 (defn get-sets [db]
   (mc/find-maps db "sets"))
