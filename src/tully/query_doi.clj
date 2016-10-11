@@ -1,5 +1,5 @@
 (ns tully.query-doi
-  (:require [org.http-kit.client :as http]
+  (:require [org.httpkit.client :as http]
             [cemerick.url :refer [url url-encode]]))
 
 (defn query-doi-url [doi]

@@ -62,7 +62,7 @@
        [:input {:type "submit" :class "button" :value "Sign up"}]
        [:span {:style "padding:0 0 0 10px;color:red;"} flash]]]]]])
 
-(def login-form
+(defn- login-form []
   [:div {:class "row"}
    [:div {:class "columns small-12"}
     [:h3 "Login"]
@@ -70,12 +70,16 @@
      [:form {:method "POST" :action "login" :class "columns small-4"}
       (anti-forgery-field)
       [:div "Username" [:input {:type "text" :name "username"}]]
-      [:div "Password" [:input {:type "password" :name "password"}]]]]]])
+      [:div "Password" [:input {:type "password" :name "password"}]]
+      [:div [:input {:type "submit" :class "button" :value "Log in"}]]]]]])
 
 (defn- create-user
   [{:keys [username password] :as user-data}]
   (-> (dissoc user-data :password)
       (assoc :password-hash (creds/hash-bcrypt password))))
+
+(defn- redirect-with-flash [req url flash]
+  (assoc (resp/redirect (str (:context req) url)) :flash flash))
 
 (defn main-routes [{store :store}]
   (routes 
@@ -85,48 +89,65 @@
                 [:h1 "Welcome to Tully"]
                 [:p (if-let [identity (friend/identity req)]
                       (apply str "Logged in")
-                      "Log in for access or sign up below!")]
-                (signup-form (:flash req))
+                      [:span  (link-to (context-uri req "signup_form") "Sign up") " to make an account, or log in below!"])]
+                (login-form)
                 (include-js "js/main.js"))))
    (GET "/login" req
-        (html5 (pretty-head "Tully login") (pretty-body login-form)))
+        (html5 (pretty-head "Tully login") (pretty-body (login-form))))
+   (GET "/signup_form" req
+        (html5 (pretty-head "Tully sign-up") (pretty-body
+                                              [:h1 "Make a Tully Account"]
+                                              (signup-form (:flash req)))))
    (GET "/logout" req
         (friend/logout* (resp/redirect (str (:context req) "/"))))
    (POST "/signup" {{:keys [username password confirm] :as params} :params :as req}
-         (if (and (not-any? str/blank? [username password confirm])
-                  (= password confirm))
-           (let [user (create-user (into {:db store} (select-keys params [:username :password])))]
+         (cond
+           (not (= password confirm)) (redirect-with-flash req "/" (apply str "passwords " password " and " confirm " don't match!"))
+           (db/user-exists (:db store) username) (redirect-with-flash req "/" (apply str "Username " username " already taken"))
+           (str/blank? [username]) (redirect-with-flash req "/" "Username required!")
+           (str/blank? [password]) (redirect-with-flash req "/" "Password required!")
+           (str/blank? [password]) (redirect-with-flash req "/" "Confirmation password required!")
+           :else (let [user (create-user (into {:db store} (select-keys params [:username :password])))]
              ;; push user into db
              (db/add-user store (:username user) (:password-hash user))
              (friend/merge-authentication
               (resp/redirect (context-uri req username))
-              user))
-           (assoc (resp/redirect (str (:context req) "/")) :flash (apply str "passwords " password " and " confirm " don't match!"))))
-   (GET "/:user" req
+              user))))
+   ;; this uses compojure destructuring, https://github.com/weavejester/compojure/wiki/Destructuring-Syntax
+   (GET "/main" req
         (friend/authenticated
-         (let [user (:user (req :params))]
-           (if (= user (:username (friend/current-authentication)))
+         (let [username (:identity (friend/current-authentication))]
+           (do
+             (log/info "Main requested with req " req)
              (html5
               (pretty-head "Welcome")
               (pretty-body
-               [:h2 (str "Hello, new user " user "!")]
+               [:h2 (str "Tully Dashboard for " username)]
+               [:p "Authenticated as " username]
                [:p "Return to the " (link-to (context-uri req "") " root")
                 ", or " (link-to (context-uri req "logout") "log out") "."]))))))
+   (GET "/cards" req
+        (html5
+         [:body
+          (include-js "js/devcards.js")]))
    (route/resources "/")
    (route/not-found "PAGE NOT FOUND")))
 
-(defn tully-credentials [user]
-  (log/info "Called credentials fn with user " user))
+(defn tully-credentials [store {:keys [username password] :as user}]
+  (log/info "Called credentials fn with user " username)
+  (if-let [user (db/get-verified-user (:db store) username password)]
+    (do (log/info "Found and verified username " (:name user))
+        (workflows/make-auth {:identity username}))))
 
 (defn secure-routes [{store :store}]
   (friend/authenticate
    (main-routes {:store store})
    {:allow-anon? true
     :login-uri "/login"
-    :default-landing-uri "/"
+    :default-landing-uri "/main"
     :unauthorized-handler #(-> (html5
                                 [:h2 "You do not have sufficient privileges to access " (:uri %)])
                                resp/response
                                (resp/status 401))
-    :credential-fn tully-credentials
+    :credential-fn (partial tully-credentials store)
     :workflows [(workflows/interactive-form)]}))

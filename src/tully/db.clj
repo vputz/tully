@@ -1,6 +1,7 @@
 (ns tully.db
   (:require [monger.core :as mg]
             [monger.collection :as mc]
+            [cemerick.friend.credentials :as creds]
             [taoensso.timbre :as log])
   (:import [org.bson.types ObjectId]
            [com.mongodb DB WriteConcern]))
@@ -10,6 +11,7 @@
         setid (ObjectId.)
         test-user {:_id userid
                    :name "vputz"
+                   :password-hash (creds/hash-bcrypt "test")
                    :sets [setid]}
         test-set {:_id setid
                   :desc "VPutz's Papers"
@@ -33,11 +35,18 @@
 (defn get-user [db username]
   (first (mc/find-maps db "users" {:name username})))
 
+(defn get-verified-user [db username password]
+  (when-let [user (get-user db username)]
+    (when (creds/bcrypt-verify password (:password-hash user)) user)))
+
 (defn add-user [db username password-hash]
-  (log/info "Creating user " username " with password hash " password-hash))
+  (log/info "Creating user " username " with password hash " password-hash " to " db))
 
 (defn get-sets [db]
   (mc/find-maps db "sets"))
 
 (defn get-user-sets [db username]
   (map #(mc/find-map-by-id db "sets" %) (:sets (get-user db username))))
+
+(defn user-exists [db username]
+  (not (nil? (get-user db username))))
