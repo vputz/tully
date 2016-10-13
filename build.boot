@@ -60,9 +60,6 @@
                   :influx-host "127.0.0.1"
                   :influx-port 8086
                   :influx-db "tully-metrics"})
-   ;; (serve :dir "target"
-   ;;        :handler 'tully.handler/app
-   ;;        :httpkit true)
    (watch :verbose true)
    (cljs 
     :optimizations :none)

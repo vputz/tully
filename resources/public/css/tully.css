@@ -1,0 +1,7 @@
+.editing {
+    color: #555555;
+}
+
+.editing.view {
+    display: none;
+}

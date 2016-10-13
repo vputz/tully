@@ -24,6 +24,7 @@
   [:head
    (include-css "css/normalize.css")
    (include-css "css/foundation.min.css")
+   (include-css "css/tully.css")
    [:style {:type "text/css"} "ul {padding-left: 2em }"]
    (include-js "js/vendor/jquery.js")
    (include-js "js/vendor/foundation.min.js")
@@ -128,6 +129,7 @@
                 ", or " (link-to (context-uri req "logout") "log out") "."]))))))
    (GET "/cards" req
         (html5
+         (pretty-head "DEVCARDS")
          [:body
           (include-js "js/devcards.js")]))
    (route/resources "/")
