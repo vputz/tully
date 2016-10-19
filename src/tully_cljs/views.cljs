@@ -1,5 +1,6 @@
 (ns tully-cljs.views
   (:require [reagent.core :as reagent]
+            [taoensso.timbre :as log]
             [re-frame.core :refer [subscribe dispatch]]))
 
 ;; Form-1 component : return the rendered html
@@ -37,12 +38,12 @@
                                      27 (stop)
                                      nil)})])))
 
-(defn editable-paper-component [doi title]
+(defn editable-paper-component [group-id paper-id doi title]
   (println "Editable paper component " doi " " title)
   (let [editing (reagent/atom false)]
-    (fn [doi title]
+    (fn [group-id paper-id doi title]
       [:div {:class (str "row " (when @editing "editing"))}
-       [:div.view
+       [:div {:class (str "view " (when @editing "editing"))}
         [:div.large-4.medium-4.columns
          {:style {:text-overflow "ellipsis"}
           :on-click #(reset! editing true)}
@@ -51,11 +52,13 @@
          {:style {:text-overflow "ellipsis"}}
          title]
         [:div.large-2.medium-2.columns
-         [:button.alert.button {:on-click #(println "Destroy " doi)} "Delete"]]]
+         [:button.alert.button
+          {:on-click #(dispatch [:delete-doi-from-group group-id paper-id])}
+          "Delete"]]]
        (when @editing
          [doi-input-component
           {:title doi
-           :on-save #(println "OnSave")
+           :on-save #(dispatch [:change-doi-of-paper group-id paper-id %])
            :on-stop #(reset! editing false)}])]      )))
 
 (defn group-component [group-id papers]
@@ -64,18 +67,27 @@
    [:div.row
     [:div.large-4.medium-4.columns {:style {:background-color "#CCCCCC"}} "DOI"]
     [:div.large-8.medium-8.columns {:style {:background-color "#CCCCCC"}} "Title"]]
-
-   (for [paper papers]
-     (with-meta 
-       [editable-paper-component (:doi paper) (:title paper)]
-       {:key (apply str group-id "-" (:doi paper))})
+   ;; use vector below instead of seq because seq is lazy and react needs nth-able
+   (for [[paper-id paper] (apply vector (seq papers))]
+     (do
+       (log/info paper-id)
+       (with-meta 
+         [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
+         {:key (apply str group-id "-" paper-id)}))
      )]
   )
 
 (defn groups-list
   []
-  (let [groups (subscribe :sorted-groups)]
+  (let [groups (subscribe [:groups])]
     (fn []
-      (for [group-id (keys @groups)]
-        [:div [group-component group-id (group-id @groups)]]))))
+      (println groups)
+      [:div.row 
+       (doall (for [[group-id papers] (apply vector (seq @groups))]
+                 (with-meta [group-component group-id (get @groups group-id)]
+                   {:key group-id})))])))
 
+(defn app
+  []
+  [:div
+   [:h1 "OMG TEH APP"]])

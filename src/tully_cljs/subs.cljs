@@ -3,8 +3,8 @@
 
 
 
-(defn sorted-groups
+(defn groups
   [db _]
   (:groups db))
-(reg-sub :sorted-groups sorted-groups)
+(reg-sub :groups groups)
 

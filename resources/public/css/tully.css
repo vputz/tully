@@ -1,7 +1,8 @@
 .editing {
-    color: #555555;
+    color: #550000;
 }
 
 .editing.view {
+    font-style: italic;
     display: none;
 }
