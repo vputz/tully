@@ -3,6 +3,7 @@
 (set-env! :dependencies '[[org.clojure/clojure "1.9.0-alpha13"]
                           [org.clojure/tools.reader "1.0.0-beta3"]
                           [com.taoensso/timbre "4.7.4"]
+                          [com.taoensso/sente "1.11.0"]
                           [com.cemerick/url "0.1.1"]
                           [ring "1.5.0"]
                           [devcards "0.2.2"]

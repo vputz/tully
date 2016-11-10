@@ -1,6 +1,7 @@
 (ns tully-cljs.views
   (:require [reagent.core :as reagent]
             [taoensso.timbre :as log]
+            [tully-cljs.chsk :as chsk]
             [re-frame.core :refer [subscribe dispatch]]))
 
 ;; Form-1 component : return the rendered html
@@ -86,6 +87,12 @@
        (doall (for [[group-id papers] (apply vector (seq @groups))]
                  (with-meta [group-component group-id (get @groups group-id)]
                    {:key group-id})))])))
+
+(defn test-chsk-component []
+  [:div [:button.button
+         {:on-click
+          #(chsk/ch-send! [:example/button {:callback? "no"}])}
+         "Send Event"]])
 
 (defn app
   []

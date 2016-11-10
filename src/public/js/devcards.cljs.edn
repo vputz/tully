@@ -2,6 +2,7 @@
            tully-cljs.views
            tully-cljs.subs
            tully-cljs.db
+           tully-cljs.chsk
            tully-cljs.events]
  :init-fns [tully-cljs.devcards/main]
  :compiler-options {:asset-path "js/devcards.out" :devcards true}

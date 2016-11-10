@@ -3,12 +3,18 @@
             [environ.core :refer [env]]
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
+            [taoensso.sente.server-adapters.http-kit
+             :refer (sente-web-server-adapter)]
             [clojure.core.async :refer [chan sliding-buffer]]
             [tully.influx :refer [new-influx-db]]
             [tully.metrics-requester :refer [new-metrics-requester]]
-            [tully.handler :refer [main-routes secure-routes]]
+            [tully.handler :refer [main-routes secure-routes event-msg-handler*]]
             [tully.http-kit-server :refer [new-web-server]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+            (system.components
+             [quartzite :refer [new-scheduler]]
+             [handler :refer [new-handler]]
+             [sente :refer [new-channel-sockets]])
             [system.components.quartzite :refer [new-scheduler]]
             [system.components.handler :refer [new-handler]]
             [system.components.endpoint :refer [new-endpoint]]
@@ -52,8 +58,9 @@
              (new-handler)
              [:routes :middleware])
    :web-server (component/using
-                (new-web-server (env :web-port))
+                (new-web-server (Integer. (env :web-port)))
                 [:handler])
+   :sente (new-channel-sockets event-msg-handler* sente-web-server-adapter)
    :metrics-requester (component/using
                        (new-metrics-requester)
                        {:influx-component :influx

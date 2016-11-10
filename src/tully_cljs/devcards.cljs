@@ -1,6 +1,7 @@
 (ns tully-cljs.devcards
   (:require
    [tully-cljs.views :as views]
+   [tully-cljs.chsk :as chsk]
    [devcards.core :as dc]
    [taoensso.timbre :as log]
    [re-frame.core :as re-frame])
@@ -63,8 +64,14 @@
   {:iframe true})
 
 (defcard-rg groups-card
-  "All groups"
+  "All Groups"
   views/groups-list
+  {}
+  {})
+
+(defcard-rg test-chsk
+  "chsk"
+  views/test-chsk-component
   {}
   {})
 
@@ -73,4 +80,7 @@
   (println "Starting devcard ui")
   (setup-example-1)
   (re-frame/dispatch-sync [:initialize-db test-db])
+  (chsk/start-router!)
+  (log/infof "Sending first chsk msg")
+  (chsk/ch-send! [:example/test {:blorp "blorp"}])
   (dc/start-devcard-ui!))

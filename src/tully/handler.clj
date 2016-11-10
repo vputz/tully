@@ -13,12 +13,13 @@
             [ring.util.response :as resp]
             [ring.util.anti-forgery :refer [anti-forgery-field]]
             [tully.db :as db]
+            [system.repl :refer [system]]
             )
   (:import java.net.URI))
 
 
 ;; pretty-head and pretty-body from cemerick's friend_demo
-;; https://github.com/cemerick/friend-demo/blob/master/src/clj/cemerick/friend_demo/misc.clj
+;; https://github.com/cemerick/friend-demo/blob/master/src/clj/cemerick/friend_demo/misc.cl
 
 (defn pretty-head [title]
   [:head
@@ -132,6 +133,8 @@
          (pretty-head "DEVCARDS")
          [:body
           (include-js "js/devcards.js")]))
+   (GET "/chsk" req ((:ring-ajax-get-or-ws-handshake (:sente system)) req))
+   (POST "/chsk" req ((:ring-ajax-post (:sente system)) req))
    (route/resources "/")
    (route/not-found "PAGE NOT FOUND")))
 
@@ -153,3 +156,21 @@
                                (resp/status 401))
     :credential-fn (partial tully-credentials store)
     :workflows [(workflows/interactive-form)]}))
+
+
+;; now the Sente event handlers; see
+;; https://github.com/danielsz/sente-system/blob/master/src/clj/example/my_app.clj
+;; for a better idea of how these fit together.
+(defmulti event-msg-handler :id)
+(defn event-msg-handler* [{:as event-msg :keys [id ?data event]}]
+  (log/debugf "Event: %s" event)
+  (event-msg-handler event-msg))
+
+(defmethod event-msg-handler :default
+  [{:as event-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  (let [session (:session ring-req)
+        uid (:uid session)]
+    (log/debugf "Unhandled event: %s" event)
+    (when ?reply-fn
+      (?reply-fn {:unmatched-event-as-echoed-from-from-server event}))))
+
