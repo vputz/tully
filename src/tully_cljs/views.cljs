@@ -1,6 +1,7 @@
 (ns tully-cljs.views
   (:require [reagent.core :as reagent]
             [taoensso.timbre :as log]
+            [taoensso.sente :as sente]
             [tully-cljs.chsk :as chsk]
             [re-frame.core :refer [subscribe dispatch]]))
 
@@ -69,9 +70,9 @@
     [:div.large-4.medium-4.columns {:style {:background-color "#CCCCCC"}} "DOI"]
     [:div.large-8.medium-8.columns {:style {:background-color "#CCCCCC"}} "Title"]]
    ;; use vector below instead of seq because seq is lazy and react needs nth-able
-   (for [[paper-id paper] (apply vector (seq papers))]
+   (for [[paper-id paper] (apply vector (seq (:papers papers)))]
      (do
-       (log/info paper-id)
+       (log/info (.-stringrep paper-id))
        (with-meta 
          [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
          {:key (apply str group-id "-" paper-id)}))
@@ -91,7 +92,7 @@
 (defn test-chsk-component []
   [:div [:button.button
          {:on-click
-          #(chsk/ch-send! [:example/button {:callback? "no"}])}
+          #(chsk/set-user-sets-from-db)}
          "Send Event"]])
 
 (defn app

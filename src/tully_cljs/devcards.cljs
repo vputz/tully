@@ -29,13 +29,23 @@
      data)))
 
 (def test-db
-  {:groups (sorted-map  "Vic's Papers" (sorted-map
-                                        "paper 1" {:doi "10.1039/C0SM00164C"
-                                                   :title "Swimmer-tracer scattering at low Reynolds Number"}
-                                        "paper 2" {:doi "10.1007/s10955-009-9826-x"
-                                                   :title "Hydrodynamic Synchronisation of Model Microswimmers"}
-                                        "paper 3" {:doi "10.1016/j.chemphys.2010.04.025"
-                                                   :title "CUDA simulations of active dumbbell suspensions"}))})
+  {:groups (sorted-map  (chsk/ObjectId. "Vic's Papers") (sorted-map
+                                                         :_id (chsk/ObjectId. "Vic's Papers")
+                                                         :desc "Vputz's papers"
+                                                         :papers {(chsk/ObjectId. "paper 1")
+                                                                  {:doi "10.1039/C0SM00164C"
+                                                                   :title "Swimmer-tracer scattering at low Reynolds Number"
+                                                                   :id (chsk/ObjectId. "paper 1")}
+
+                                                                  (chsk/ObjectId. "paper 2")
+                                                                  {:doi "10.1007/s10955-009-9826-x"
+                                                                   :title "Hydrodynamic Synchronisation of Model Microswimmers"
+                                                                   :id (chsk/ObjectId. "paper 2")}
+
+                                                                  (chsk/ObjectId. "paper 3")
+                                                                  {:doi "10.1016/j.chemphys.2010.04.025"
+                                                                   :title "CUDA simulations of active dumbbell suspensions"
+                                                                   :id (chsk/ObjectId. "paper 3")}}))})
 
 (defn reset-component
   []
@@ -59,7 +69,7 @@
 (defcard-rg group-atom-card
   "Group atom card"
   (fn [data-atom _]
-    [views/group-component "Vic's Papers" (get-in @data-atom [:groups  "Vic's Papers"])])
+    [views/group-component "Vic's Papers" (get-in @data-atom [:groups (chsk/ObjectId. "Vic's Papers")])])
   test-db
   {:iframe true})
 
@@ -81,6 +91,4 @@
   (setup-example-1)
   (re-frame/dispatch-sync [:initialize-db test-db])
   (chsk/start-router!)
-  (log/infof "Sending first chsk msg")
-  (chsk/ch-send! [:example/test {:blorp "blorp"}])
   (dc/start-devcard-ui!))

@@ -5,6 +5,8 @@
             [taoensso.timbre :as log]
             [taoensso.sente.server-adapters.http-kit
              :refer (sente-web-server-adapter)]
+            [cognitect.transit :as transit]
+            [taoensso.sente.packers.transit :as sente-transit]
             [clojure.core.async :refer [chan sliding-buffer]]
             [tully.influx :refer [new-influx-db]]
             [tully.metrics-requester :refer [new-metrics-requester]]
@@ -20,7 +22,8 @@
             [system.components.endpoint :refer [new-endpoint]]
             [system.components.middleware :refer [new-middleware]]
             [system.components.mongo :refer [new-mongo-db]]
-))
+            )
+    (:import [org.bson.types ObjectId]))
 
 (defrecord Test [msg]
   component/Lifecycle
@@ -36,6 +39,16 @@
 
 (defn new-test [msg]
   (map->Test {:msg msg}))
+
+(def objectid-writer
+  (transit/write-handler
+   "object-id"
+   (fn [o] (-> ^ObjectId o str))
+   (fn [o] (-> ^ObjectId o str))))
+
+(def objectid-reader
+  (transit/read-handler
+   (fn [ostring] (ObjectId. ostring))))
 
 (defsystem dev-system
   [;; base infrastructure components
@@ -60,7 +73,13 @@
    :web-server (component/using
                 (new-web-server (Integer. (env :web-port)))
                 [:handler])
-   :sente (new-channel-sockets event-msg-handler* sente-web-server-adapter)
+   :sente (new-channel-sockets event-msg-handler* sente-web-server-adapter
+                               {:packer (sente-transit/get-transit-packer
+                                         :json
+                                         {:handlers {ObjectId objectid-writer}}
+                                         {:handlers {"object-id" objectid-reader}}
+                                         )})
+                               
    :metrics-requester (component/using
                        (new-metrics-requester)
                        {:influx-component :influx

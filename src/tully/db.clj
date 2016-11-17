@@ -15,15 +15,20 @@
                    :sets [setid]}
         test-set {:_id setid
                   :desc "VPutz's Papers"
-                  :papers [{:doi "10.1039/C0SM00164C"
+                  :papers [{:id (ObjectId.)
+                            :doi "10.1039/C0SM00164C"
                             :title "Swimmer-tracer scattering at Low Reynolds Number"}
-                           {:doi "10.1007/s10955-009-9826-x"
+                           {:id (ObjectId.)
+                            :doi "10.1007/s10955-009-9826-x"
                             :title "Hydrodynamic Synchronisation of Model Microswimmers"}
-                           {:doi "10.1016/j.chemphys.2010.04.025"
+                           {:id (ObjectId.)
+                            :doi "10.1016/j.chemphys.2010.04.025"
                             :title "CUDA simulations of active dumbbell suspensions"}
-                           {:doi "10.1109/TNS.2004.840838"
+                           {:id (ObjectId.)
+                            :doi "10.1109/TNS.2004.840838"
                             :title "Survey of DSCS-III B-7 differential surface charging"}
-                           {:doi "10.1109/TNS.2007.909911"
+                           {:id (ObjectId.)
+                            :doi "10.1109/TNS.2007.909911"
                             :title "Bootstrap Surface Charging at GEO: Modeling and On-Orbit Observations From the DSCS-III B7 Satellite"}]}]
     (mc/remove db "users")
     (mc/insert db "users" test-user)
@@ -47,6 +52,20 @@
 
 (defn get-user-sets [db username]
   (map #(mc/find-map-by-id db "sets" %) (:sets (get-user db username))))
+
+(defn group-first-by
+  "groups a collection by a function but then only takes the first of each subcollection"
+  [group-fn coll]
+  (reduce-kv (fn [coll k v] (assoc coll k (first v))) {} (group-by group-fn coll)))
+
+(defn get-user-sets-as-map
+  "DB stores in lists and collections; we export to the clojurescript client as map"
+  [db username]
+  (let [sets (get-user-sets db username)
+        gsets (group-first-by :_id sets)]
+    (reduce-kv (fn [coll k v] (assoc coll k (update v :papers (partial group-first-by :id)))) {} gsets)
+    ))
+
 
 (defn user-exists [db username]
   (not (nil? (get-user db username))))

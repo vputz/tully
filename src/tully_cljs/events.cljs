@@ -47,3 +47,10 @@
  (fn [groups [group-id paper-id new-doi]]
    (log/info "Changing paper " paper-id " in group " group-id " doi to " new-doi)
    (assoc-in groups [group-id paper-id :doi] new-doi)))
+
+(reg-event-db
+ :set-user-sets-from-db
+ tully-interceptors
+ (fn [groups [new-groups]]
+   (log/info "Replacing old groups with new groups " new-groups)
+   new-groups))

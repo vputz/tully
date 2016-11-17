@@ -15,7 +15,8 @@
             [tully.db :as db]
             [system.repl :refer [system]]
             )
-  (:import java.net.URI))
+  (:import java.net.URI
+           [org.bson.types ObjectId]))
 
 
 ;; pretty-head and pretty-body from cemerick's friend_demo
@@ -174,3 +175,15 @@
     (when ?reply-fn
       (?reply-fn {:unmatched-event-as-echoed-from-from-server event}))))
 
+(defmethod event-msg-handler :db/get-objectid
+  [{:as event-msg :keys [event ?reply-fn]}]
+  (let [return-id  (ObjectId.)]
+    (log/debugf "Requested new object ID, returning %s" return-id)
+    (?reply-fn return-id)))
+
+(defmethod event-msg-handler :db/get-user-sets
+  [{:as event-msg :keys [event ?reply-fn ?data]}]
+  (let [{:keys [user-id]} ?data
+        sets (db/get-user-sets-as-map (get-in system [:store :db]) user-id)]
+    (log/info "Sending sets " sets)
+    (?reply-fn sets)))

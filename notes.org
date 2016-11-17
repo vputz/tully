@@ -13,3 +13,7 @@
 - magomimmo modern-cljs tutorials work with boot
 - curiously, actual path name to .cljs.edn files determines output; this was decided for purposes 
   of boot, which threads filesets so that you shouldn't override cljs compiler output-to and output-dir
+- crossref api has many uses, and look at rcrossref (https://github.com/ropensci/rcrossref) for more
+- rcrossref citation count does use openurl, seems to return via xml
+- to access system from repl, (require '[system.repl :as repl]) and then
+  refer to repl/system

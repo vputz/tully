@@ -1,0 +1,24 @@
+
+# restclient: type url/data, C-c C-c to execute, pretty-print response
+
+# note: reference count in Crossref result seems to be number of
+# OUTBOUND references, not citations of this article
+# it seems citation counts aren't available via api but by openurl (?),
+# although openurl requires an account
+
+# Basic information on a DOI.   - note ref count 26, scholar says 32, xref
+# doi query says 27; reference count seems to be 
+GET http://api.crossref.org/works/10.1039/C0SM00164C
+
+
+# ref count 36 scholar 23, xref citedby 14, hydrodynamic sinc 
+GET http://api.crossref.org/works/10.1007/s10955-009-9826-x
+
+# ref count 40, scholar 18, xref citedby 14 Cuda Suspensions
+GET http://api.crossref.org/works/10.1016/j.chemphys.2010.04.025
+
+# wat
+GET http://www.crossref.org/openurl?id=doi:10.1016/j.chemphys.2010.04.025&pid=vbputz@gmail.com&noredirect=true
+
+# scopus, but results probably limited by source ip
+GET http://www.scopus.com/scsearchapi/search.url?dev

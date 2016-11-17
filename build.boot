@@ -4,6 +4,8 @@
                           [org.clojure/tools.reader "1.0.0-beta3"]
                           [com.taoensso/timbre "4.7.4"]
                           [com.taoensso/sente "1.11.0"]
+                          [com.cognitect/transit-cljs "0.8.239"]
+                          [com.cognitect/transit-clj "0.8.290"]
                           [com.cemerick/url "0.1.1"]
                           [ring "1.5.0"]
                           [devcards "0.2.2"]
