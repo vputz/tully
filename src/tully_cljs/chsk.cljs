@@ -61,10 +61,20 @@
   (ch-send! [:db/get-objectid] 1000
             (fn [cb-reply] (log/debugf "Callback oid reply: %s" cb-reply))))
 
-(defn set-user-sets-from-db []
+(defn request-and-set-user-sets-from-db []
   (ch-send! [:db/get-user-sets {:user-id "vputz"}] 1000
             (fn [cb-reply]
               (log/debugf "Callback get-user-sets: %s" cb-reply)
               (if (sente/cb-success? cb-reply)
                 (dispatch [:set-user-sets-from-db cb-reply])
                 (log/info "Error in user set reply")))))
+
+(defn reset-test-database []
+  (ch-send! [:db/reset-test-database {:user-id "vputz"}] 1000))
+
+(defn get-title-for-doi [doi title-atom]
+  (ch-send! [:db/get-title-for-doi {:doi doi}] 1000
+            (fn [cb-reply]
+              (log/debugf "Callback get-title-for-doi: %s" cb-reply)
+              (if (sente/cb-success? cb-reply)
+                (reset! title-atom cb-reply)))))

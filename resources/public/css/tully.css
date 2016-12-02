@@ -6,3 +6,12 @@
     font-style: italic;
     display: none;
 }
+
+div.groupheader {
+    font-size: 150%;
+    background-color: #CCCCCC;
+}
+
+div.columnheader {
+    background-color: #CCCCCC;
+}

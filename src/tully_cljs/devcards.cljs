@@ -52,7 +52,7 @@
   [:div.row [:button.alert.button {:on-click #(re-frame/dispatch [:initialize-db test-db])} "Reset!"]])
 
 (defcard-rg reset
-  "Reset the db"
+  "Reset the re-frame db"
   (fn [data-atom _]
     [reset-component])
   {}
@@ -79,9 +79,15 @@
   {}
   {})
 
-(defcard-rg test-chsk
+(defcard-rg test-refresh
   "chsk"
-  views/test-chsk-component
+  views/test-refresh-component
+  {}
+  {})
+
+(defcard-rg test-refresh
+  "chsk"
+  views/test-reset-database-component
   {}
   {})
 

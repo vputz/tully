@@ -13,6 +13,7 @@
             [ring.util.response :as resp]
             [ring.util.anti-forgery :refer [anti-forgery-field]]
             [tully.db :as db]
+            [tully.crossref :as crossref]
             [system.repl :refer [system]]
             )
   (:import java.net.URI
@@ -187,3 +188,13 @@
         sets (db/get-user-sets-as-map (get-in system [:store :db]) user-id)]
     (log/info "Sending sets " sets)
     (?reply-fn sets)))
+
+(defmethod event-msg-handler :db/reset-test-database
+  [{:as event-msg :keys [event ?reply-fn ?data]}]
+  (db/make-test-data (get-in system [:store :db])))
+
+(defmethod event-msg-handler :db/get-title-for-doi
+  [{:as event-msg :keys [event ?reply-fn ?data]}]
+  (do
+    (log/info "Received get-title-for-doi request with data" ?data)
+    (?reply-fn (crossref/sync-title (:doi ?data)))))

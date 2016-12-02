@@ -23,7 +23,7 @@
 
 (defn doi-input-component [{:keys [title on-save on-stop]}]
   (let [val (reagent/atom title)
-        stop #(do (reset! val "")
+        stop #(do ;;(reset! val "")
                  (when on-stop (on-stop)))
         save #(let [v (-> @val str clojure.string/trim)]
                (when (seq v) (on-save v))
@@ -63,37 +63,66 @@
            :on-save #(dispatch [:change-doi-of-paper group-id paper-id %])
            :on-stop #(reset! editing false)}])]      )))
 
-(defn group-component [group-id papers]
-  (println "Group component " group-id " " papers)
-  [:div.row
-   [:div.row
-    [:div.large-4.medium-4.columns {:style {:background-color "#CCCCCC"}} "DOI"]
-    [:div.large-8.medium-8.columns {:style {:background-color "#CCCCCC"}} "Title"]]
-   ;; use vector below instead of seq because seq is lazy and react needs nth-able
-   (for [[paper-id paper] (apply vector (seq (:papers papers)))]
-     (do
-       (log/info (.-stringrep paper-id))
-       (with-meta 
-         [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
-         {:key (apply str group-id "-" paper-id)}))
-     )]
+(defn group-component [group-id group]
+  (println "Group component " group-id " " (:desc group))
+  (let [new-paper-doi (reagent/atom "")
+        new-paper-title (reagent/atom "")]
+    (fn [group-id group]
+      [:div.callout.secondary
+       [:div.row
+        [:div.large-12.columns.groupheader (:desc group)]]
+       [:div.row
+        [:div.large-4.medium-4.columns.columnheader "DOI"]
+        [:div.large-8.medium-8.columns.columnheader  "Title"]]
+       ;; use vector below instead of seq because seq is lazy and react needs nth-able
+       (for [[paper-id paper] (apply vector (seq (:papers group)))]
+         (do
+           (log/info (.-stringrep paper-id))
+           (with-meta 
+             [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
+             {:key (apply str group-id "-" paper-id)}))
+         )
+       [:div.row
+        [:div.large-4.medium-4.columns
+         [doi-input-component {:title @new-paper-doi
+                               :on-save #(do (log/info "New paper " %)
+                                             (reset! new-paper-doi %)
+                                             (chsk/get-title-for-doi % new-paper-title))
+                               :on-stop #()}]]
+        [:div.large-6.medium-6.columns @new-paper-title]
+        [:div.large-2.medium-2.columns
+         [:button.button
+          {:on-click #(dispatch [:add-new-paper group-id @new-paper-doi])}
+          "Add Paper"]]]]))
   )
 
 (defn groups-list
   []
   (let [groups (subscribe [:groups])]
     (fn []
-      (println groups)
+      (log/info "Number of groups: " (count @groups))
       [:div.row 
        (doall (for [[group-id papers] (apply vector (seq @groups))]
+                (doall 
+                 (log/info "Group id " (.-stringrep group-id))
                  (with-meta [group-component group-id (get @groups group-id)]
-                   {:key group-id})))])))
+                   {:key (.-stringrep group-id)}))))
+       [:div.row [:button.button {:on-click
+                                  #(dispatch [:add-new-group])}
+                  "Add New Group"]]]
+      )))
 
-(defn test-chsk-component []
+(defn test-refresh-component []
   [:div [:button.button
          {:on-click
-          #(chsk/set-user-sets-from-db)}
-         "Send Event"]])
+          #(chsk/request-and-set-user-sets-from-db)}
+         "Refresh From Server"]])
+
+(defn test-reset-database-component []
+  [:div [:button.button.warning
+         {:on-click
+          #(chsk/reset-test-database)}
+         "Reset Test Database"]])
 
 (defn app
   []

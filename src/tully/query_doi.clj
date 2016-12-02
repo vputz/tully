@@ -8,6 +8,4 @@
 (defn query-doi-response [doi]
   (http/get (str (query-doi-url doi))))
 
-(defn crossref-doi-url [doi]
-  (url "http://api.crossref.org/works" (url-encode doi)))
 

@@ -7,14 +7,16 @@
            [com.mongodb DB WriteConcern]))
 
 (defn make-test-data [db]
+  (log/info "Resetting test data in database")
   (let [userid (ObjectId.)
-        setid (ObjectId.)
+        test-set-id (ObjectId.)
+        sat-set-id (ObjectId.)
         test-user {:_id userid
                    :name "vputz"
                    :password-hash (creds/hash-bcrypt "test")
-                   :sets [setid]}
-        test-set {:_id setid
-                  :desc "VPutz's Papers"
+                   :sets [test-set-id sat-set-id]}
+        test-set {:_id test-set-id
+                  :desc "Swimmers"
                   :papers [{:id (ObjectId.)
                             :doi "10.1039/C0SM00164C"
                             :title "Swimmer-tracer scattering at Low Reynolds Number"}
@@ -23,18 +25,21 @@
                             :title "Hydrodynamic Synchronisation of Model Microswimmers"}
                            {:id (ObjectId.)
                             :doi "10.1016/j.chemphys.2010.04.025"
-                            :title "CUDA simulations of active dumbbell suspensions"}
-                           {:id (ObjectId.)
-                            :doi "10.1109/TNS.2004.840838"
-                            :title "Survey of DSCS-III B-7 differential surface charging"}
-                           {:id (ObjectId.)
-                            :doi "10.1109/TNS.2007.909911"
-                            :title "Bootstrap Surface Charging at GEO: Modeling and On-Orbit Observations From the DSCS-III B7 Satellite"}]}]
+                            :title "CUDA simulations of active dumbbell suspensions"}]}
+        sat-set {:_id sat-set-id
+                 :desc "Satellites"
+                 :papers [{:id (ObjectId.)
+                           :doi "10.1109/TNS.2004.840838"
+                           :title "Survey of DSCS-III B-7 differential surface charging"}
+                          {:id (ObjectId.)
+                           :doi "10.1109/TNS.2007.909911"
+                           :title "Bootstrap Surface Charging at GEO: Modeling and On-Orbit Observations From the DSCS-III B7 Satellite"}]}]
     (mc/remove db "users")
     (mc/insert db "users" test-user)
 
     (mc/remove db "sets")
     (mc/insert db "sets" test-set)
+    (mc/insert db "sets" sat-set)
     ))
 
 (defn get-user [db username]
