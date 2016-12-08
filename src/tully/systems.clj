@@ -78,7 +78,8 @@
                                          :json
                                          {:handlers {ObjectId objectid-writer}}
                                          {:handlers {"object-id" objectid-reader}}
-                                         )})
+                                         )
+                                :user-id-fn (fn [ring-req] (:client-id ring-req))})
                                
    :metrics-requester (component/using
                        (new-metrics-requester)

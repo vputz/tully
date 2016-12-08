@@ -16,7 +16,7 @@
 (s/def ::desc string?)
 (s/def ::_id objectid?)
 ;; req-un request unqualified versions so we should be able to have :doi and :title?
-(s/def ::paper (s/keys :req-un [::doi ::title ::id]))
+(s/def ::paper (s/keys :req-un [::doi ::title ::did]))
 (s/def ::papers (s/map-of ::paper-id ::paper))
 (s/def ::group (s/keys :req-un [::_id ::desc ::papers]))
 (s/def ::groups (s/map-of ::_id ::group))

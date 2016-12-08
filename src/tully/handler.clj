@@ -169,10 +169,10 @@
   (event-msg-handler event-msg))
 
 (defmethod event-msg-handler :default
-  [{:as event-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
+  [{:as event-msg :keys [event id ?data uid ring-req ?reply-fn send-fn client-id]}]
   (let [session (:session ring-req)
-        uid (:uid session)]
-    (log/debugf "Unhandled event: %s" event)
+        user-id (:uid session)]
+    (log/debugf "Unhandled event: %s for uid %s client-id %s" event uid client-id)
     (when ?reply-fn
       (?reply-fn {:unmatched-event-as-echoed-from-from-server event}))))
 
@@ -180,7 +180,7 @@
   [{:as event-msg :keys [event ?reply-fn]}]
   (let [return-id  (ObjectId.)]
     (log/debugf "Requested new object ID, returning %s" return-id)
-    (?reply-fn return-id)))
+    (?reply-fn {:objectid return-id})))
 
 (defmethod event-msg-handler :db/get-user-sets
   [{:as event-msg :keys [event ?reply-fn ?data]}]
@@ -198,3 +198,33 @@
   (do
     (log/info "Received get-title-for-doi request with data" ?data)
     (?reply-fn (crossref/sync-title (:doi ?data)))))
+
+(defn send-groups [uid]
+  (log/debug "Sending groups for uid " uid)
+  (let [groups (db/get-user-sets-as-map (get-in system [:store :db]) uid)
+        chsk-send! (get-in system [:sente :chsk-send!])]
+    (chsk-send! uid [:db/groups-from-db {:groups groups}])))
+
+(defmethod event-msg-handler :db/request-user-sets
+  [{:as event-msg :keys [event uid]}]
+  (do 
+    (log/debug "User stats requested; sending groups to uid " uid)
+    (send-groups uid)))
+
+
+(defmethod event-msg-handler :db/write-user-groups-to-db
+  [{:as event-msg :keys [event ?reply-fn ?data uid]}]
+  (do
+    (let [sets (map db/set-papers-map-to-set-papers-seq (vals (:groups ?data)))]
+      (log/info "Received write-user-groups-to-db request with data" sets)
+      (db/update-user-sets (get-in system [:store :db]) sets)
+      (send-groups uid))))
+
+(defmethod event-msg-handler :db/write-new-paper-to-db
+  [{:as event-msg :keys [event ?reply-fn ?data uid]}]
+  (do
+    (let [{:keys [group-id paper-doi paper-title]} ?data]
+      (log/info "Received write-new-paper-to-db request with data" ?data)
+      (db/write-paper-to-group (get-in system [:store :db]) group-id paper-doi paper-title)
+      (send-groups uid)
+      )))

@@ -48,7 +48,8 @@
        [:div {:class (str "view " (when @editing "editing"))}
         [:div.large-4.medium-4.columns
          {:style {:text-overflow "ellipsis"}
-          :on-click #(reset! editing true)}
+;          :on-click #(reset! editing true)
+          }
          doi]
         [:div.large-6.medium-6.columns
          {:style {:text-overflow "ellipsis"}}
@@ -63,37 +64,58 @@
            :on-save #(dispatch [:change-doi-of-paper group-id paper-id %])
            :on-stop #(reset! editing false)}])]      )))
 
-(defn group-component [group-id group]
-  (println "Group component " group-id " " (:desc group))
-  (let [new-paper-doi (reagent/atom "")
+(defn add-paper-component [group-id]
+  (let [valid-lookup (reagent/atom false)
+        new-paper-doi (reagent/atom "")
         new-paper-title (reagent/atom "")]
-    (fn [group-id group]
-      [:div.callout.secondary
-       [:div.row
-        [:div.large-12.columns.groupheader (:desc group)]]
-       [:div.row
-        [:div.large-4.medium-4.columns.columnheader "DOI"]
-        [:div.large-8.medium-8.columns.columnheader  "Title"]]
-       ;; use vector below instead of seq because seq is lazy and react needs nth-able
-       (for [[paper-id paper] (apply vector (seq (:papers group)))]
-         (do
-           (log/info (.-stringrep paper-id))
-           (with-meta 
-             [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
-             {:key (apply str group-id "-" paper-id)}))
-         )
-       [:div.row
+    (fn [group-id]
+      [:div.row
         [:div.large-4.medium-4.columns
          [doi-input-component {:title @new-paper-doi
                                :on-save #(do (log/info "New paper " %)
                                              (reset! new-paper-doi %)
-                                             (chsk/get-title-for-doi % new-paper-title))
+                                             (chsk/get-title-for-doi % valid-lookup new-paper-title))
                                :on-stop #()}]]
         [:div.large-6.medium-6.columns @new-paper-title]
         [:div.large-2.medium-2.columns
-         [:button.button
-          {:on-click #(dispatch [:add-new-paper group-id @new-paper-doi])}
-          "Add Paper"]]]]))
+         [:button {:class (if @valid-lookup "button" "disabled")
+                   :disabled (not @valid-lookup)
+                   :on-click (fn [_]
+                               (let [new-doi @new-paper-doi
+                                     new-title @new-paper-title]
+                                 (dispatch [:add-new-paper group-id new-doi new-title]))
+                               
+
+)
+                ;;    :on-click #((log/debug "Sending new paper" group-id @new-paper-doi @new-paper-title)
+;;                                       ;(reset! new-paper-doi "")
+;; ;                                      (reset! new-paper-title "")
+;;  ;                                     (reset! valid-lookup false)
+
+;;                              ; (log/debug "component reset")
+;;                                     ;  (dispatch [:add-new-paper group-id @new-paper-doi @new-paper-title])
+;; )
+                   }
+          (if @valid-lookup "Add Paper" "Cannot Add")]]])))
+
+(defn group-component [group-id group]
+  (println "Group component " group-id " " (:desc group))
+  (fn [group-id group]
+    [:div.callout.secondary
+     [:div.row
+      [:div.large-12.columns.groupheader (:desc group)]]
+     [:div.row
+      [:div.large-4.medium-4.columns.columnheader "DOI"]
+      [:div.large-8.medium-8.columns.columnheader  "Title"]]
+     ;; use vector below instead of seq because seq is lazy and react needs nth-able
+     (for [[paper-id paper] (apply vector (seq (:papers group)))]
+       (do
+         (log/info (.-stringrep paper-id))
+         (with-meta 
+           [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
+           {:key (apply str group-id "-" paper-id)}))
+       )
+     (with-meta [add-paper-component group-id] {:key (apply str group-id "-add-paper")})])
   )
 
 (defn groups-list
@@ -114,8 +136,7 @@
 
 (defn test-refresh-component []
   [:div [:button.button
-         {:on-click
-          #(chsk/request-and-set-user-sets-from-db)}
+         {:on-click #(dispatch [:request-user-sets-from-db])}
          "Refresh From Server"]])
 
 (defn test-reset-database-component []

@@ -35,17 +35,17 @@
                                                          :papers {(chsk/ObjectId. "paper 1")
                                                                   {:doi "10.1039/C0SM00164C"
                                                                    :title "Swimmer-tracer scattering at low Reynolds Number"
-                                                                   :id (chsk/ObjectId. "paper 1")}
+                                                                   :did (chsk/ObjectId. "paper 1")}
 
                                                                   (chsk/ObjectId. "paper 2")
                                                                   {:doi "10.1007/s10955-009-9826-x"
                                                                    :title "Hydrodynamic Synchronisation of Model Microswimmers"
-                                                                   :id (chsk/ObjectId. "paper 2")}
+                                                                   :did (chsk/ObjectId. "paper 2")}
 
                                                                   (chsk/ObjectId. "paper 3")
                                                                   {:doi "10.1016/j.chemphys.2010.04.025"
                                                                    :title "CUDA simulations of active dumbbell suspensions"
-                                                                   :id (chsk/ObjectId. "paper 3")}}))})
+                                                                   :did (chsk/ObjectId. "paper 3")}}))})
 
 (defn reset-component
   []
@@ -96,5 +96,6 @@
   (println "Starting devcard ui")
   (setup-example-1)
   (re-frame/dispatch-sync [:initialize-db test-db])
+  (chsk/make-chsk-sockets "devcards")
   (chsk/start-router!)
   (dc/start-devcard-ui!))

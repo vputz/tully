@@ -18,5 +18,5 @@
   (log/info "Getting title for doi " doi)
   (let [resp @(crossref-doi-response doi)]
     (if (= 404 (:status resp))
-      "Title not found"
-      (first (get-in (json/read-str (:body resp)) ["message" "title"])))))
+      {:valid-lookup false :title "Title not found"}
+      {:valid-lookup true :title (first (get-in (json/read-str (:body resp)) ["message" "title"]))})))

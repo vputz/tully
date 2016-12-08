@@ -69,7 +69,7 @@
 ;;   (target :dir #{"target"})
    (system :sys #'dev-system
            :auto true
-           :files ["handler.clj" "systems.clj"])
+           :files ["handler.clj" "systems.clj" "db.clj"])
    (repl :server true)))
 
 (deftask dev-run

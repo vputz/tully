@@ -12,26 +12,26 @@
         test-set-id (ObjectId.)
         sat-set-id (ObjectId.)
         test-user {:_id userid
-                   :name "vputz"
+                   :name "devcards"
                    :password-hash (creds/hash-bcrypt "test")
                    :sets [test-set-id sat-set-id]}
         test-set {:_id test-set-id
                   :desc "Swimmers"
-                  :papers [{:id (ObjectId.)
+                  :papers [{:did (ObjectId.)
                             :doi "10.1039/C0SM00164C"
                             :title "Swimmer-tracer scattering at Low Reynolds Number"}
-                           {:id (ObjectId.)
+                           {:did (ObjectId.)
                             :doi "10.1007/s10955-009-9826-x"
                             :title "Hydrodynamic Synchronisation of Model Microswimmers"}
-                           {:id (ObjectId.)
+                           {:did (ObjectId.)
                             :doi "10.1016/j.chemphys.2010.04.025"
                             :title "CUDA simulations of active dumbbell suspensions"}]}
         sat-set {:_id sat-set-id
                  :desc "Satellites"
-                 :papers [{:id (ObjectId.)
+                 :papers [{:did (ObjectId.)
                            :doi "10.1109/TNS.2004.840838"
                            :title "Survey of DSCS-III B-7 differential surface charging"}
-                          {:id (ObjectId.)
+                          {:did (ObjectId.)
                            :doi "10.1109/TNS.2007.909911"
                            :title "Bootstrap Surface Charging at GEO: Modeling and On-Orbit Observations From the DSCS-III B7 Satellite"}]}]
     (mc/remove db "users")
@@ -58,6 +58,13 @@
 (defn get-user-sets [db username]
   (map #(mc/find-map-by-id db "sets" %) (:sets (get-user db username))))
 
+(defn update-user-sets [db sets]
+  (letfn [(update-set [set]
+            (log/info "Updating set " set)
+            (mc/update-by-id db "sets" (:_id set) set {:upsert true}))]
+    (doall
+     (map update-set sets))))
+
 (defn group-first-by
   "groups a collection by a function but then only takes the first of each subcollection"
   [group-fn coll]
@@ -68,9 +75,20 @@
   [db username]
   (let [sets (get-user-sets db username)
         gsets (group-first-by :_id sets)]
-    (reduce-kv (fn [coll k v] (assoc coll k (update v :papers (partial group-first-by :id)))) {} gsets)
+    (reduce-kv (fn [coll k v] (assoc coll k (update v :papers (partial group-first-by :did)))) {} gsets)
     ))
 
+(defn set-papers-map-to-set-papers-seq [set]
+  "DB stores in lists, we want to take the sets with papers as map and convert"
+  (assoc set :papers (vals (:papers set))))
 
 (defn user-exists [db username]
   (not (nil? (get-user db username))))
+
+(defn write-paper-to-group [db group-id paper-doi paper-title]
+  (let [group (mc/find-map-by-id db "sets" group-id)
+        papers (:papers group)
+        new-paper {:did (ObjectId.)
+                   :doi paper-doi
+                   :title paper-title}]
+    (mc/update-by-id db "sets" group-id (assoc group :papers (conj papers new-paper)))))

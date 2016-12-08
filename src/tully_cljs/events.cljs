@@ -1,6 +1,7 @@
 (ns tully-cljs.events
-  (:require [re-frame.core :refer [reg-event-db reg-event-fx reg-fx after path debug trim-v]]
+  (:require [re-frame.core :refer [reg-event-db reg-event-fx reg-fx after path debug trim-v inject-cofx reg-cofx]]
             [taoensso.timbre :as log]
+            [tully-cljs.chsk :as chsk]
             [tully-cljs.db :refer [default-value
                                    check-and-throw
                                    groups->local-store]]))
@@ -29,18 +30,20 @@
       m)
     (dissoc m k)))
 
-(reg-event-db
+(reg-event-fx
  :delete-doi-from-group
- tully-interceptors
- (fn [groups [group-id paper-id]]
+ [trim-v]
+ (fn [cofx [group-id paper-id]]
    ;;(log/info "groups: " groups)
    (log/info "Deleting paper " paper-id " from group " group-id)
-   (let [paper (get-in groups [group-id :papers paper-id])
+   (let [db (:db cofx)
+         groups (:groups db)
+         paper (get-in groups [group-id :papers paper-id])
          newgroups 
          (dissoc-in groups [group-id :papers paper-id])]
      (log/info "Paper found " paper)
      (log/info "New groups " newgroups)
-     newgroups)))
+     {:write-groups newgroups})))
 
 (reg-event-db
  :set-groups
@@ -49,6 +52,19 @@
    (do
      (log/info "Setting groups: " newgroups)
      newgroups)))
+
+(reg-event-fx
+ :add-new-paper
+ [trim-v]
+ (fn [cofx [group-id new-paper-doi new-paper-title :as args]]
+   (log/debug "Adding new paper " args)
+   {:write-new-paper-to-db args}
+   ))
+
+(reg-fx
+ :write-new-paper-to-db
+ (fn [[group-id paper-doi paper-title :as args]]
+   (chsk/write-new-paper-to-db group-id paper-doi paper-title)))
 
 (reg-event-fx
  :change-doi-of-paper
@@ -63,13 +79,24 @@
        (log/info "groups: " groups)
        (log/info "group id: " group-id)
        (let [newgroups (assoc-in groups [group-id :papers paper-id :doi] new-doi)]
-         {:dispatch [:set-groups newgroups]
-          :write-groups newgroups})))))
+         {:write-groups newgroups})))))
+
+(reg-event-fx
+ :request-user-sets-from-db
+ [trim-v]
+ (fn [cofx]
+   {:request-user-sets-from-db-fx nil}))
 
 (reg-fx
  :write-groups
  (fn [newgroups]
-   (log/info "Write Groups:" newgroups)))
+   (log/info "Write Groups:" newgroups)
+   (chsk/write-user-groups-to-db newgroups)))
+
+(reg-fx
+ :request-user-sets-from-db-fx
+ (fn []
+   (chsk/request-and-set-user-sets-from-db)))
 
 (reg-event-db
  :set-user-sets-from-db
