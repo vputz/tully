@@ -35,6 +35,7 @@
                    :json
                    {:handlers {ObjectId objectid-writer}}
                    {:handlers {"object-id" objectid-reader}})})]
+    (log/info "MAKING SOCKET with client-id " client-id)
     (def chsk chsk)
     (def ch-chsk ch-recv) ; channel-socket receive
     (def ch-send! send-fn)

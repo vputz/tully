@@ -94,8 +94,8 @@
 (defn ^:export main []
   (enable-console-print!)
   (println "Starting devcard ui")
-  (setup-example-1)
-  (re-frame/dispatch-sync [:initialize-db test-db])
   (chsk/make-chsk-sockets "devcards")
   (chsk/start-router!)
+  (setup-example-1)
+  (re-frame/dispatch-sync [:initialize-db test-db])
   (dc/start-devcard-ui!))

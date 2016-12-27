@@ -11,12 +11,13 @@
             [tully.influx :refer [new-influx-db]]
             [tully.metrics-requester :refer [new-metrics-requester]]
             [tully.handler :refer [main-routes secure-routes event-msg-handler*]]
-            [tully.http-kit-server :refer [new-web-server]]
+;            [tully.http-kit-server :refer [new-web-server]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             (system.components
              [quartzite :refer [new-scheduler]]
              [handler :refer [new-handler]]
-             [sente :refer [new-channel-sockets]])
+             [sente :refer [new-channel-sockets]]
+             [http-kit :refer [new-web-server]])
             [system.components.quartzite :refer [new-scheduler]]
             [system.components.handler :refer [new-handler]]
             [system.components.endpoint :refer [new-endpoint]]
@@ -57,8 +58,7 @@
    :influx (new-influx-db (env :influx-host) (env :influx-port) (env :influx-db))
    ;;   :scheduler (new-scheduler)
    ;; disabled for now for restart nullpointerexception
-   :middleware (new-middleware {:middleware [[wrap-defaults :defaults]]
-                                :defaults site-defaults})
+   :middleware (new-middleware {:middleware [[wrap-defaults site-defaults]]})
 
    ;;channels
    :metrics-request-chan (chan 10)   ;increase this or use sliding-buffer?
@@ -79,7 +79,8 @@
                                          {:handlers {ObjectId objectid-writer}}
                                          {:handlers {"object-id" objectid-reader}}
                                          )
-                                :user-id-fn (fn [ring-req] (:client-id ring-req))})
+                                :user-id-fn (fn [ring-req] (:client-id ring-req))
+                                })
                                
    :metrics-requester (component/using
                        (new-metrics-requester)
