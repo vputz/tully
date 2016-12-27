@@ -121,3 +121,9 @@
 
 (defn write-user-groups-to-db [groups]
   (ch-send! [:db/write-user-groups-to-db {:groups groups}]))
+
+(defn delete-group-id-from-db [group-id]
+  (ch-send! [:db/delete-group-id-from-db {:group-id group-id}]))
+
+(defn create-new-group-in-db [group-name]
+  (ch-send! [:db/create-new-group-named {:group-name group-name}]))

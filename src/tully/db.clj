@@ -1,6 +1,7 @@
 (ns tully.db
   (:require [monger.core :as mg]
             [monger.collection :as mc]
+            [monger.operators :as mo]
             [cemerick.friend.credentials :as creds]
             [taoensso.timbre :as log])
   (:import [org.bson.types ObjectId]
@@ -58,12 +59,14 @@
 (defn get-user-sets [db username]
   (map #(mc/find-map-by-id db "sets" %) (:sets (get-user db username))))
 
-(defn update-user-sets [db sets]
+(defn update-user-sets [db sets username]
   (letfn [(update-set [set]
             (log/info "Updating set " set)
             (mc/update-by-id db "sets" (:_id set) set {:upsert true}))]
     (doall
-     (map update-set sets))))
+     (map update-set sets))
+    (let [set-ids (map #(:_id %) sets)]
+      (mc/update db "users" {:name username} {mo/$set {:sets set-ids}}))))
 
 (defn group-first-by
   "groups a collection by a function but then only takes the first of each subcollection"
@@ -92,3 +95,14 @@
                    :doi paper-doi
                    :title paper-title}]
     (mc/update-by-id db "sets" group-id (assoc group :papers (conj papers new-paper)))))
+
+(defn delete-group-id [db group-id]
+  (mc/remove-by-id db "sets" group-id))
+
+(defn create-group-for-user [db username group-name]
+  (let [new-id (ObjectId.)
+        new-set {:_id new-id
+                 :desc group-name
+                 :papers []}]
+    (mc/insert db "sets" new-set)
+    (mc/update db "users" {:name username} {mo/$addToSet {:sets new-id}})))

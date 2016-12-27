@@ -217,7 +217,7 @@
   (do
     (let [sets (map db/set-papers-map-to-set-papers-seq (vals (:groups ?data)))]
       (log/info "Received write-user-groups-to-db request with data" sets)
-      (db/update-user-sets (get-in system [:store :db]) sets)
+      (db/update-user-sets (get-in system [:store :db]) sets uid)
       (send-groups uid))))
 
 (defmethod event-msg-handler :db/write-new-paper-to-db
@@ -228,3 +228,16 @@
       (db/write-paper-to-group (get-in system [:store :db]) group-id paper-doi paper-title)
       (send-groups uid)
       )))
+
+(defmethod event-msg-handler :db/delete-group-id-from-db
+  [{:keys [event ?data uid]}]
+  (let [{:keys [group-id]} ?data]
+    (log/info "Recieved delete request for group " group-id)
+    (db/delete-group-id (get-in system [:store :db]) group-id)))
+
+(defmethod event-msg-handler :db/create-new-group-named
+  [{:keys [event ?data uid]}]
+  (let [{:keys [group-name]} ?data]
+    (log/info "Received create request for group named " group-name)
+    (db/create-group-for-user (get-in system [:store :db]) uid group-name)
+    (send-groups uid)))

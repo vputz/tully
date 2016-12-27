@@ -103,7 +103,11 @@
   (fn [group-id group]
     [:div.callout.secondary
      [:div.row
-      [:div.large-12.columns.groupheader (:desc group)]]
+      [:div.large-8.medium-8.columns.groupheader (:desc group)]
+      [:div.large-2.medium-2.columns
+       [:button.alert.button {:on-click (fn [_]
+                                    (dispatch [:delete-group group-id]))}
+        "Delete Group"]]]
      [:div.row
       [:div.large-4.medium-4.columns.columnheader "DOI"]
       [:div.large-8.medium-8.columns.columnheader  "Title"]]
@@ -129,10 +133,23 @@
                  (log/info "Group id " (.-stringrep group-id))
                  (with-meta [group-component group-id (get @groups group-id)]
                    {:key (.-stringrep group-id)}))))
-       [:div.row [:button.button {:on-click
-                                  #(dispatch [:add-new-group])}
-                  "Add New Group"]]]
-      )))
+       [add-new-group-component]])))
+
+(defn add-new-group-component
+  []
+  (let [new-group-name (reagent/atom "New Group")]
+    (fn []
+      [:div.callout.secondary
+       [:div.row
+        [:div.large-8.medium-8.columns
+         [doi-input-component {:title @new-group-name
+                               :on-save #(reset! new-group-name %)
+                               :on-stop #()}]]
+        [:div.large-4.medium-4.columns
+         [:button.button {:on-click (fn [_]
+                                      (let [new-group @new-group-name]
+                                        (dispatch [:add-new-group new-group])))}
+          "Add New Group"]]]])))
 
 (defn test-refresh-component []
   [:div [:button.button

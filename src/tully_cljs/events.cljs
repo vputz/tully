@@ -31,6 +31,18 @@
     (dissoc m k)))
 
 (reg-event-fx
+ :delete-group
+ [trim-v]
+ (fn [cofx [group-id]]
+   (log/info "Deleting group " group-id)
+   (let [db (:db cofx)
+         groups (:groups db)
+         newgroups (dissoc groups group-id)]
+     {:delete-group group-id
+      :write-groups newgroups})
+   ))
+
+(reg-event-fx
  :delete-doi-from-group
  [trim-v]
  (fn [cofx [group-id paper-id]]
@@ -86,6 +98,24 @@
  [trim-v]
  (fn [cofx]
    {:request-user-sets-from-db-fx nil}))
+
+(reg-event-fx
+ :add-new-group
+ [trim-v]
+ (fn [cofx [group-name :as args]]
+   {:create-new-group-in-db group-name}))
+
+(reg-fx
+ :create-new-group-in-db
+ (fn [group-name]
+   (log/info "Creating new group named " group-name)
+   (chsk/create-new-group-in-db group-name)))
+
+(reg-fx
+ :delete-group
+ (fn [group-id]
+   (log/info "Deleting group " group-id " from db")
+   (chsk/delete-group-id-from-db group-id)))
 
 (reg-fx
  :write-groups
