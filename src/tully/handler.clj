@@ -54,16 +54,16 @@
   "creates a sign-up form; 'flash' is used to display an error message such as mismatched passwords"
   [flash]
   [:div {:class "row"}
-   [:div {:class "columns small-12"}
+   [:div {:class "columns small-12 large-12"}
     [:h3 "Sign Up"]
     [:div {:class "row"}
-     [:form {:method "POST" :action "signup" :class "columns small-4"}
+     [:form {:method "POST" :name "signup-form" :action "signup" :class "columns small-8 large-8"}
       (anti-forgery-field)
       [:div "Username" [:input {:type "text" :name "username" :required "required"}]]
       [:div "Password" [:input {:type "password" :name "password" :required "required"}]]
       [:div "Confirm Password" [:input {:type "password" :name "confirm" :required "required"}]]
       [:div
-       [:input {:type "submit" :class "button" :value "Sign up"}]
+       [:input {:type "submit" :name "submit-button" :class "button" :value "Sign up"}]
        [:span {:style "padding:0 0 0 10px;color:red;"} flash]]]]]])
 
 (defn- login-form []
@@ -79,8 +79,7 @@
 
 (defn- create-user
   [{:keys [username password] :as user-data}]
-  (-> (dissoc user-data :password)
-      (assoc :password-hash (creds/hash-bcrypt password))))
+  {:identity username :password (creds/hash-bcrypt password)})
 
 (defn- redirect-with-flash [req url flash]
   (assoc (resp/redirect (str (:context req) url)) :flash flash))
@@ -94,8 +93,7 @@
                 [:p (if-let [identity (friend/identity req)]
                       (clojure.string/join "Logged in")
                       [:span  (link-to (context-uri req "signup_form") "Sign up") " to make an account, or log in below!"])]
-                (login-form)
-                (include-js "js/main.js"))))
+                (login-form))))
    (GET "/login" req
         (html5 (pretty-head "Tully login") (pretty-body (login-form))))
    (GET "/signup_form" req
@@ -105,30 +103,32 @@
    (GET "/logout" req
         (friend/logout* (resp/redirect (str (:context req) "/"))))
    (POST "/signup" {{:keys [username password confirm] :as params} :params :as req}
-         (cond
-           (not= password confirm) (redirect-with-flash req "/" (apply str "passwords " password " and " confirm " don't match!"))
-           (db/user-exists (:db store) username) (redirect-with-flash req "/" (apply str "Username " username " already taken"))
-           (str/blank? [username]) (redirect-with-flash req "/" "Username required!")
-           (str/blank? [password]) (redirect-with-flash req "/" "Password required!")
-           (str/blank? [password]) (redirect-with-flash req "/" "Confirmation password required!")
-           :else (let [user (create-user (into {:db store} (select-keys params [:username :password])))]
-             ;; push user into db
-             (db/add-user store (:username user) (:password-hash user))
-             (friend/merge-authentication
-              (resp/redirect (context-uri req username))
-              user))))
+         (letfn [(redir [flash] (redirect-with-flash req "/signup_form" flash))]
+           (cond
+             (not= password confirm) (redir [:div "Passwords " password " and " confirm " don't match!"])
+             (db/user-exists (:db store) username) (redir [:div "Username " username " already taken"])
+             (str/blank? username) (redir [:div "Username required!"])
+             (str/blank? password) (redir [:div "Password required!"])
+             (str/blank? confirm) (redir [:div "Confirmation password required!"])
+             :else (let [user (create-user (into {:db store} (select-keys params [:username :password])))]
+                     (do 
+                       (log/debug "Handler creating user " user)
+                       (db/add-user (:db store) (:identity user) (:password user))
+                       (friend/merge-authentication
+                        (resp/redirect (context-uri req "/main"))
+                        user))))))
    ;; this uses compojure destructuring, https://github.com/weavejester/compojure/wiki/Destructuring-Syntax
    (GET "/main" req
         (friend/authenticated
          (let [username (:identity (friend/current-authentication))]
            (log/info "Main requested with req " req)
            (html5
-            (pretty-head "Welcome")
-            (pretty-body
-             [:h2 (str "Tully Dashboard for " username)]
-             [:p "Authenticated as " username]
-             [:p "Return to the " (link-to (context-uri req "") " root")
-              ", or " (link-to (context-uri req "logout") "log out") "."])))))
+            (pretty-head (str/join ["Tully - welcome, " username]))
+            [:div {:style {:display "hidden"}
+                   :id "server-data"
+                   :username username}]
+            [:div {:id "app"}]
+            (include-js "js/main.js")))))
    (GET "/cards" req
         (html5
          (pretty-head "DEVCARDS")

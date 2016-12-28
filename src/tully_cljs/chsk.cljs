@@ -2,6 +2,8 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [taoensso.timbre :as log]
             [taoensso.sente :as sente]
+            [taoensso.encore :as enc]
+            [clojure.string :as str]
             [cljs.core.async :refer [chan <! put!]]
             [cognitect.transit :as transit]
             [goog.array :as garray]
@@ -25,8 +27,10 @@
   (transit/read-handler
    (fn [from-str] (ObjectId. from-str))))
 
-(defn make-chsk-sockets [client-id]
-  (let [{:keys [chsk ch-recv send-fn state]}
+(defn make-chsk-sockets [user-id]
+  (let [client-part (enc/uuid-str)
+        client-id (str/join "-" [user-id client-part])
+        {:keys [chsk ch-recv send-fn state]}
         (sente/make-channel-socket-client!
          "/chsk"
          {:type :auto
@@ -35,12 +39,18 @@
                    :json
                    {:handlers {ObjectId objectid-writer}}
                    {:handlers {"object-id" objectid-reader}})})]
-    (log/info "MAKING SOCKET with client-id " client-id)
+    (log/info "MAKING SOCKET with client-id " client-id " using client-part " client-part)
     (def chsk chsk)
     (def ch-chsk ch-recv) ; channel-socket receive
     (def ch-send! send-fn)
     (def chsk-state state)
     ))
+
+(defn wait-for-msg
+  [ch]
+  (go
+    (let [val (<! ch)]
+      (log/info "Waited; msg= " val))))
 
 (defmulti event-msg-handler :id) ;; dispatch on event-id
 
@@ -67,6 +77,13 @@
   [{:as event-msg :keys [event ?data]}]
   (log/debugf "Handled chsk/recv with event %s and data %s" event ?data)
   (chsk-event-handler ?data))
+
+(defmethod event-msg-handler :chsk/state
+  [{:as event-msg :keys [event ?data]}]
+  (let [[init-state new-state] ?data]
+    (log/debugf "Handled chsk/state with new state %s" new-state)
+    (when (:first-open? new-state)
+      (dispatch [:request-user-sets-from-db]))))
 
 
 (def router_ (atom nil))

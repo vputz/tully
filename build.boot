@@ -2,8 +2,9 @@
 
 (set-env! :dependencies '[[org.clojure/clojure "1.9.0-alpha13"]
                           [org.clojure/tools.reader "1.0.0-beta3"]
-                          [com.taoensso/timbre "4.7.4"]
+                          [com.taoensso/timbre "4.8.0"]
                           [com.taoensso/sente "1.11.0"]
+                          [com.taoensso/encore "2.88.1"]
                           [com.cognitect/transit-cljs "0.8.239"]
                           [com.cognitect/transit-clj "0.8.290"]
                           [com.cemerick/url "0.1.1"]
@@ -61,7 +62,14 @@
   "Set the testing environment"
   []
   (set-env! :source-paths '#{"src/" "test/"})
-  (environ :env {:chromedriver-path "c:\\tools\\selenium\\chromedriver.exe"}))
+  (environ :env {:chromedriver-path "c:\\tools\\selenium\\chromedriver.exe"
+                 :mongo-host "127.0.0.1"
+                 :mongo-port "27017"
+                 :mongo-db "monger-test"
+                 :web-port "3001"
+                 :influx-host "127.0.0.1"
+                 :influx-port "8086"
+                 :influx-db "tully-metrics"})  )
 
 (deftask unit-tests
   "Run basic unit tests"
@@ -81,13 +89,7 @@
   "Run a restartable system in the REPL"
   []
   (comp
-   (environ :env {:mongo-host "127.0.0.1"
-                  :mongo-port 27017
-                  :mongo-db "monger-test"
-                  :web-port 3001
-                  :influx-host "127.0.0.1"
-                  :influx-port 8086
-                  :influx-db "tully-metrics"})
+   (test-env)   
    (watch :verbose true)
    (cljs 
     :optimizations :none)

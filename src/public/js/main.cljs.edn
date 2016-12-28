@@ -1,5 +1,6 @@
 {:require [tully-cljs.core
-           tully-cljs.chsk]
+           tully-cljs.chsk
+           tully-cljs.views]
  :init-fns [tully-cljs.core/main]
  :compiler-options {:asset-path "js/main.out"}
 }

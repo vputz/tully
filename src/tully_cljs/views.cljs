@@ -121,19 +121,6 @@
      (with-meta [add-paper-component group-id] {:key (apply str group-id "-add-paper")})])
   )
 
-(defn groups-list
-  []
-  (let [groups (subscribe [:groups])]
-    (fn []
-      (log/info "Number of groups: " (count @groups))
-      [:div.row 
-       (doall (for [[group-id papers] (apply vector (seq @groups))]
-                (doall 
-                 (log/info "Group id " (.-stringrep group-id))
-                 (with-meta [group-component group-id (get @groups group-id)]
-                   {:key (.-stringrep group-id)}))))
-       [add-new-group-component]])))
-
 (defn add-new-group-component
   []
   (let [new-group-name (reagent/atom "New Group")]
@@ -150,6 +137,19 @@
                                         (dispatch [:add-new-group new-group])))}
           "Add New Group"]]]])))
 
+(defn groups-list
+  []
+  (let [groups (subscribe [:groups])]
+    (fn []
+      (log/info "Number of groups: " (count @groups))
+      [:div.row 
+       (doall (for [[group-id papers] (apply vector (seq @groups))]
+                (doall 
+                 (log/info "Group id " (.-stringrep group-id))
+                 (with-meta [group-component group-id (get @groups group-id)]
+                   {:key (.-stringrep group-id)}))))
+       [add-new-group-component]])))
+
 (defn test-refresh-component []
   [:div [:button.button
          {:on-click #(dispatch [:request-user-sets-from-db])}
@@ -164,4 +164,4 @@
 (defn app
   []
   [:div
-   [:h1 "OMG TEH APP"]])
+   [groups-list]])

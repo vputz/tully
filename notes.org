@@ -17,3 +17,4 @@
 - rcrossref citation count does use openurl, seems to return via xml
 - to access system from repl, (require '[system.repl :as repl]) and then
   refer to repl/system
+- to reload, (use 'namespace :reload) or (use 'namespace :reload-all)

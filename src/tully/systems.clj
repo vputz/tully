@@ -1,6 +1,8 @@
 (ns tully.systems
   (:require [system.core :refer [defsystem]]
             [environ.core :refer [env]]
+            [clojure.edn :as edn]
+            [clojure.string :as str]
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]
             [taoensso.sente.server-adapters.http-kit
@@ -51,11 +53,17 @@
   (transit/read-handler
    (fn [ostring] (ObjectId. ostring))))
 
+(defn parse-number
+  "Reads a number from a string. Returns nil if not a number."
+  [s]
+  (if (re-find #"^-?\d+\.?\d*$" s)
+    (edn/read-string s)))
+
 (defsystem dev-system
   [;; base infrastructure components
-   :store (new-mongo-db (env :mongo-host) (env :mongo-port) (env :mongo-db) {})
+   :store (new-mongo-db (env :mongo-host) (parse-number (env :mongo-port)) (env :mongo-db) {})
    ;; disabled for now for port conflict
-   :influx (new-influx-db (env :influx-host) (env :influx-port) (env :influx-db))
+   :influx (new-influx-db (env :influx-host) (parse-number (env :influx-port)) (env :influx-db))
    :scheduler (new-scheduler)
    ;; disabled for now for restart nullpointerexception
    :middleware (new-middleware {:middleware [[wrap-defaults site-defaults]]})
@@ -71,7 +79,7 @@
              (new-handler)
              [:routes :middleware])
    :web-server (component/using
-                (new-web-server (Integer. (env :web-port)))
+                (new-web-server (parse-number (env :web-port)))
                 [:handler])
    :sente (new-channel-sockets event-msg-handler* sente-web-server-adapter
                                {:packer (sente-transit/get-transit-packer
@@ -79,7 +87,7 @@
                                          {:handlers {ObjectId objectid-writer}}
                                          {:handlers {"object-id" objectid-reader}}
                                          )
-                                :user-id-fn (fn [ring-req] (:client-id ring-req))
+                                :user-id-fn (fn [ring-req] (first (str/split (:client-id ring-req) #"-")))
                                 })
                                
    :metrics-requester (component/using

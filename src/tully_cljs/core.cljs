@@ -5,12 +5,25 @@
             [taoensso.sente :as sente]
             [tully-cljs.events]
             [tully-cljs.subs]
+            [tully-cljs.chsk :as chsk]
             [tully-cljs.views]))
 
 
 (log/infof "Clojurescript loaded correctly!")
 
+(defn get-username
+  []
+  (-> (.getElementById js/document "server-data")
+     (.getAttribute "username")
+     (cljs.reader/read-string)))
+
 (defn ^:export main []
-  (dispatch-sync [:initialise-db])
+  (enable-console-print!)
+  (let [username (get-username)]
+    (chsk/make-chsk-sockets "devcards")
+;    (chsk/wait-for-msg chsk/ch-chsk)
+    (chsk/start-router!))
   (reagent/render [tully-cljs.views/app]
-                  (.getElementById js/document "app")))
+                  (.getElementById js/document "app"))  
+ 
+)

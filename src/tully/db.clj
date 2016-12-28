@@ -51,7 +51,8 @@
     (when (creds/bcrypt-verify password (:password-hash user)) user)))
 
 (defn add-user [db username password-hash]
-  (log/info "Creating user " username " with password hash " password-hash " to " db))
+  (log/debug "Creating user " username " with password hash " password-hash " to " db)
+  (mc/insert db "users" {:name username :password-hash password-hash :sets []}))
 
 (defn get-sets [db]
   (mc/find-maps db "sets"))
