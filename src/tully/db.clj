@@ -83,7 +83,8 @@
 
 (defn set-papers-map-to-set-papers-seq [set]
   "DB stores in lists, we want to take the sets with papers as map and convert"
-  (assoc set :papers (vals (:papers set))))
+  (update-in set [:papers] vals); (assoc set :papers (vals (:papers set)))
+  )
 
 (defn user-exists [db username]
   (not (nil? (get-user db username))))

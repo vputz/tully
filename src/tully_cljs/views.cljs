@@ -23,8 +23,7 @@
 
 (defn doi-input-component [{:keys [title on-save on-stop]}]
   (let [val (reagent/atom title)
-        stop #(do ;;(reset! val "")
-                 (when on-stop (on-stop)))
+        stop #(when on-stop (on-stop))
         save #(let [v (-> @val str clojure.string/trim)]
                (when (seq v) (on-save v))
                (stop))]

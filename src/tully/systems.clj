@@ -56,7 +56,7 @@
    :store (new-mongo-db (env :mongo-host) (env :mongo-port) (env :mongo-db) {})
    ;; disabled for now for port conflict
    :influx (new-influx-db (env :influx-host) (env :influx-port) (env :influx-db))
-   ;;   :scheduler (new-scheduler)
+   :scheduler (new-scheduler)
    ;; disabled for now for restart nullpointerexception
    :middleware (new-middleware {:middleware [[wrap-defaults site-defaults]]})
 

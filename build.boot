@@ -16,19 +16,21 @@
                           [org.clojure/core.async "0.2.391"]
                           [adzerk/boot-cljs "1.7.228-1"]
                           [adzerk/boot-reload "0.4.12"]
+                          [adzerk/boot-test "1.1.2" :scope "test"]
                           [pandeiro/boot-http "0.7.3"]
                           [enlive "1.1.6"]
                           [hiccup "1.0.5"]
                           [http-kit "2.1.18"]
                           [compojure "1.5.1"]
                           [ring/ring-defaults "0.2.1"]
-                          [tolitius/boot-check "0.1.3"]
+                          [tolitius/boot-check "0.1.4"]
                           [com.novemberain/monger "3.1.0"]
                           [com.stuartsierra/component "0.3.1"]
                           [environ "1.1.0"]
                           [capacitor "0.6.0"]
                           [org.danielsz/system "0.3.2-SNAPSHOT"]
                           [clojurewerkz/quartzite "2.0.0"]
+                          [webica "3.0.0-beta2-clj0" :scope "test"]
                           [boot-environ "1.1.0"]]
           :source-paths '#{"src/"}
           :resource-paths '#{"resources/"})
@@ -46,11 +48,34 @@
 (require '[boot.repl]
          '[adzerk.boot-cljs :refer [cljs]]
          '[adzerk.boot-reload :refer [reload]]
+         '[adzerk.boot-test :refer [test]]
 ;         '[pandeiro.boot-http :refer [serve]]
          '[environ.boot :refer [environ]]
          '[tully.systems :refer [dev-system]]
          '[system.boot :refer [system run]]
          '[tolitius.boot-check :as check])
+
+()
+
+(deftask test-env
+  "Set the testing environment"
+  []
+  (set-env! :source-paths '#{"src/" "test/"})
+  (environ :env {:chromedriver-path "c:\\tools\\selenium\\chromedriver.exe"}))
+
+(deftask unit-tests
+  "Run basic unit tests"
+  []
+  (comp
+   (test-env)
+   (test :namespaces '[tully.core-test])))
+
+(deftask browser-tests
+  "Run selenium browser tests"
+  []
+  (comp
+   (test-env)
+   (test :namespaces '[tully.browser-test])))
 
 (deftask dev
   "Run a restartable system in the REPL"

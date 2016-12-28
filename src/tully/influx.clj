@@ -15,8 +15,10 @@
   (stop [component]
     (do
       (log/info "Stopping influx")
-      (-> component
-          (dissoc component :client)))))
+      (dissoc component :client)
+      ;; (-> component
+      ;;     (dissoc component :client))
+      )))
 
 
 (defn new-influx-db

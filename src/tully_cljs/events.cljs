@@ -87,11 +87,10 @@
    (let [db (:db cofx)
          groups (:groups db)
          ]
-     (do 
-       (log/info "groups: " groups)
-       (log/info "group id: " group-id)
-       (let [newgroups (assoc-in groups [group-id :papers paper-id :doi] new-doi)]
-         {:write-groups newgroups})))))
+     (log/info "groups: " groups)
+     (log/info "group id: " group-id)
+     (let [newgroups (assoc-in groups [group-id :papers paper-id :doi] new-doi)]
+       {:write-groups newgroups}))))
 
 (reg-event-fx
  :request-user-sets-from-db

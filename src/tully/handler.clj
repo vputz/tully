@@ -92,7 +92,7 @@
                (pretty-body
                 [:h1 "Welcome to Tully"]
                 [:p (if-let [identity (friend/identity req)]
-                      (apply str "Logged in")
+                      (clojure.string/join "Logged in")
                       [:span  (link-to (context-uri req "signup_form") "Sign up") " to make an account, or log in below!"])]
                 (login-form)
                 (include-js "js/main.js"))))
@@ -106,7 +106,7 @@
         (friend/logout* (resp/redirect (str (:context req) "/"))))
    (POST "/signup" {{:keys [username password confirm] :as params} :params :as req}
          (cond
-           (not (= password confirm)) (redirect-with-flash req "/" (apply str "passwords " password " and " confirm " don't match!"))
+           (not= password confirm) (redirect-with-flash req "/" (apply str "passwords " password " and " confirm " don't match!"))
            (db/user-exists (:db store) username) (redirect-with-flash req "/" (apply str "Username " username " already taken"))
            (str/blank? [username]) (redirect-with-flash req "/" "Username required!")
            (str/blank? [password]) (redirect-with-flash req "/" "Password required!")
@@ -121,15 +121,14 @@
    (GET "/main" req
         (friend/authenticated
          (let [username (:identity (friend/current-authentication))]
-           (do
-             (log/info "Main requested with req " req)
-             (html5
-              (pretty-head "Welcome")
-              (pretty-body
-               [:h2 (str "Tully Dashboard for " username)]
-               [:p "Authenticated as " username]
-               [:p "Return to the " (link-to (context-uri req "") " root")
-                ", or " (link-to (context-uri req "logout") "log out") "."]))))))
+           (log/info "Main requested with req " req)
+           (html5
+            (pretty-head "Welcome")
+            (pretty-body
+             [:h2 (str "Tully Dashboard for " username)]
+             [:p "Authenticated as " username]
+             [:p "Return to the " (link-to (context-uri req "") " root")
+              ", or " (link-to (context-uri req "logout") "log out") "."])))))
    (GET "/cards" req
         (html5
          (pretty-head "DEVCARDS")
@@ -214,20 +213,18 @@
 
 (defmethod event-msg-handler :db/write-user-groups-to-db
   [{:as event-msg :keys [event ?reply-fn ?data uid]}]
-  (do
-    (let [sets (map db/set-papers-map-to-set-papers-seq (vals (:groups ?data)))]
-      (log/info "Received write-user-groups-to-db request with data" sets)
-      (db/update-user-sets (get-in system [:store :db]) sets uid)
-      (send-groups uid))))
+  (let [sets (map db/set-papers-map-to-set-papers-seq (vals (:groups ?data)))]
+    (log/info "Received write-user-groups-to-db request with data" sets)
+    (db/update-user-sets (get-in system [:store :db]) sets uid)
+    (send-groups uid)))
 
 (defmethod event-msg-handler :db/write-new-paper-to-db
   [{:as event-msg :keys [event ?reply-fn ?data uid]}]
-  (do
-    (let [{:keys [group-id paper-doi paper-title]} ?data]
-      (log/info "Received write-new-paper-to-db request with data" ?data)
-      (db/write-paper-to-group (get-in system [:store :db]) group-id paper-doi paper-title)
-      (send-groups uid)
-      )))
+  (let [{:keys [group-id paper-doi paper-title]} ?data]
+    (log/info "Received write-new-paper-to-db request with data" ?data)
+    (db/write-paper-to-group (get-in system [:store :db]) group-id paper-doi paper-title)
+    (send-groups uid)
+    ))
 
 (defmethod event-msg-handler :db/delete-group-id-from-db
   [{:keys [event ?data uid]}]
