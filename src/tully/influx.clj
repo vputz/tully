@@ -1,6 +1,5 @@
 (ns tully.influx
   (:require [capacitor.core :as cap]
-            [environ.core :refer [env]]
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]))
 

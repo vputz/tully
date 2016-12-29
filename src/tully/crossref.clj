@@ -1,8 +1,8 @@
 (ns tully.crossref
-  (:require [cemerick.url :refer [url url-encode map->query]]
-            [taoensso.timbre :as log]
+  (:require [cemerick.url :refer [url url-encode]]
             [clojure.data.json :as json]
-            [org.httpkit.client :as http]))
+            [org.httpkit.client :as http]
+            [taoensso.timbre :as log]))
 
 ;; https://github.com/crossref/rest-api-doc/blob/master/rest_api.md
 ;; http://tdmsupport.crossref.org/researchers/

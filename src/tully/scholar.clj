@@ -1,16 +1,16 @@
 (ns tully.scholar
-  (:require [cemerick.url :refer [url url-encode map->query]]
+  (:require [cemerick.url :refer [url]]
+            [clojure.string :as str]
             [net.cgrand.enlive-html :as html]
-            [org.httpkit.client :as http]
-            [clojure.string :as str]))
+            [org.httpkit.client :as http]))
 
-; much from http://masnun.com/2016/03/20/web-scraping-with-clojure.html
+                                        ; much from http://masnun.com/2016/03/20/web-scraping-with-clojure.html
 
 
 (defn doi-url [doi]
   (-> "http://scholar.google.com/scholar"
-       url
-       (assoc :query {:hl "en" :q doi})))
+     url
+     (assoc :query {:hl "en" :q doi})))
 
 (defn get-dom [doi]
   (:body @(http/get (str (doi-url doi)))))

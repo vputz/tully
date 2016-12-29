@@ -1,0 +1,3 @@
+- views/etc add ObjectID to each row?
+- add reg-sub initialised? (see https://github.com/Day8/re-frame/blob/master/docs/Loading-Initial-Data.md)
+- read https://github.com/Day8/re-frame/blob/master/docs/Subscribing-To-External-Data.md

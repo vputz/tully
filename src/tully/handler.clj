@@ -1,24 +1,25 @@
 (ns tully.handler
-  (:require [compojure.core :refer [defroutes routes GET POST]]
-            [compojure.route :as route]
-            [compojure.handler :as handler]
+  (:require [cemerick.friend :as friend]
+            [cemerick.friend
+             [credentials :as creds]
+             [workflows :as workflows]]
             [clojure.string :as str]
-            [taoensso.timbre :as log]
-            [hiccup.core :refer :all]
-            [hiccup.page :refer [html5 include-css include-js]]
-            [hiccup.element :refer [link-to]]
-            [cemerick.friend :as friend]
-            [cemerick.friend.credentials :as creds]
-            [cemerick.friend.workflows :as workflows]
-            [ring.util.response :as resp]
-            [ring.util.anti-forgery :refer [anti-forgery-field]]
-            [tully.db :as db]
-            [tully.crossref :as crossref]
+            [compojure
+             [core :refer [GET POST routes]]
+             [route :as route]]
+            [hiccup
+             [element :refer [link-to]]
+             [page :refer [html5 include-css include-js]]]
+            [ring.util
+             [anti-forgery :refer [anti-forgery-field]]
+             [response :as resp]]
             [system.repl :refer [system]]
-            )
+            [taoensso.timbre :as log]
+            [tully
+             [crossref :as crossref]
+             [db :as db]])
   (:import java.net.URI
-           [org.bson.types ObjectId]))
-
+           org.bson.types.ObjectId))
 
 ;; pretty-head and pretty-body from cemerick's friend_demo
 ;; https://github.com/cemerick/friend-demo/blob/master/src/clj/cemerick/friend_demo/misc.cl

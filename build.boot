@@ -120,11 +120,12 @@
 ;; https://github.com/danielsz/system/tree/master/examples/boot for example
 
 (swap! boot.repl/*default-dependencies*
-       concat '[[cider/cider-nrepl "0.13.0"]
-                [refactor-nrepl "2.0.0-SNAPSHOT"]])
+       concat '[[cider/cider-nrepl "0.14.0-snapshot"]
+                [refactor-nrepl "2.3.0-SNAPSHOT"]])
 
 (swap! boot.repl/*default-middleware*
-       conj 'cider.nrepl/cider-middleware)
+       concat '[cider.nrepl/cider-middleware
+                refactor-nrepl.middleware/wrap-refactor])
 
 (deftask cider "CIDER profile"
   []

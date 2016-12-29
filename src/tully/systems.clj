@@ -1,32 +1,31 @@
 (ns tully.systems
-  (:require [system.core :refer [defsystem]]
-            [environ.core :refer [env]]
-            [clojure.edn :as edn]
-            [clojure.string :as str]
-            [com.stuartsierra.component :as component]
-            [taoensso.timbre :as log]
-            [taoensso.sente.server-adapters.http-kit
-             :refer (sente-web-server-adapter)]
+  (:require [clojure
+             [edn :as edn]
+             [string :as str]]
+            [clojure.core.async :refer [chan]]
             [cognitect.transit :as transit]
-            [taoensso.sente.packers.transit :as sente-transit]
-            [clojure.core.async :refer [chan sliding-buffer]]
-            [tully.influx :refer [new-influx-db]]
-            [tully.metrics-requester :refer [new-metrics-requester]]
-            [tully.handler :refer [main-routes secure-routes event-msg-handler*]]
-;            [tully.http-kit-server :refer [new-web-server]]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            (system.components
-             [quartzite :refer [new-scheduler]]
+            [com.stuartsierra.component :as component]
+            [environ.core :refer [env]]
+            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [system.components
+             [endpoint :refer [new-endpoint]]
              [handler :refer [new-handler]]
-             [sente :refer [new-channel-sockets]]
-             [http-kit :refer [new-web-server]])
-            [system.components.quartzite :refer [new-scheduler]]
-            [system.components.handler :refer [new-handler]]
-            [system.components.endpoint :refer [new-endpoint]]
-            [system.components.middleware :refer [new-middleware]]
-            [system.components.mongo :refer [new-mongo-db]]
-            )
-    (:import [org.bson.types ObjectId]))
+             [http-kit :refer [new-web-server]]
+             [middleware :refer [new-middleware]]
+             [mongo :refer [new-mongo-db]]
+             [sente :refer [new-channel-sockets]]]
+            [system.core :refer [defsystem]]
+            [taoensso.sente.packers.transit :as sente-transit]
+            [taoensso.sente.server-adapters.http-kit
+             :refer
+             [sente-web-server-adapter]]
+            [taoensso.timbre :as log]
+            [tully
+             [handler :refer [event-msg-handler* secure-routes]]
+             [influx :refer [new-influx-db]]
+             [metrics-requester :refer [new-metrics-requester]]
+             [metrics-manager :refer [new-scheduler new-metrics-manager]]])
+  (:import org.bson.types.ObjectId))
 
 (defrecord Test [msg]
   component/Lifecycle
@@ -89,9 +88,13 @@
                                          )
                                 :user-id-fn (fn [ring-req] (first (str/split (:client-id ring-req) #"-")))
                                 })
-                               
+   
    :metrics-requester (component/using
                        (new-metrics-requester)
                        {:influx-component :influx
                         :request-chan :metrics-request-chan})
+
+   :metrcis-manger (component/using
+                    (new-metrics-manager)
+                    [:store :influx :schedler :metrics-requester])
    ])

@@ -1,11 +1,10 @@
 (ns tully.db
-  (:require [monger.core :as mg]
-            [monger.collection :as mc]
-            [monger.operators :as mo]
-            [cemerick.friend.credentials :as creds]
+  (:require [cemerick.friend.credentials :as creds]
+            [monger
+             [collection :as mc]
+             [operators :as mo]]
             [taoensso.timbre :as log])
-  (:import [org.bson.types ObjectId]
-           [com.mongodb DB WriteConcern]))
+  (:import org.bson.types.ObjectId))
 
 (defn make-test-data [db]
   (log/info "Resetting test data in database")
@@ -108,3 +107,12 @@
                  :papers []}]
     (mc/insert db "sets" new-set)
     (mc/update db "users" {:name username} {mo/$addToSet {:sets new-id}})))
+
+(defn get-all-dois
+  "Retrieve a set of all DOIs in the database"
+  [db]
+  (let [sets (get-sets db) ]
+    (->> sets
+       (mapcat :papers)
+       (map :doi)
+       )))

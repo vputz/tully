@@ -1,11 +1,9 @@
 (ns tully.metrics-requester
-  (:require [clojure.core.async :refer [go >! <! chan go-loop alt!]]
-            [taoensso.timbre :as log]
+  (:require [clojure.core.async :refer [alt! chan go-loop]]
             [clojure.spec :as s]
-            [tully.spec :refer :all]
-            [tully.scholar :as scholar]
-            [com.stuartsierra.component :as component]))
-
+            [com.stuartsierra.component :as component]
+            [taoensso.timbre :as log]
+            [tully.scholar :as scholar]))
 
 (defn process-msg [component msg]
   (if (s/valid? :tully/request-msg msg)

@@ -1,11 +1,7 @@
 (ns tully.main
-  (:require [environ.core :refer [env]]
-            [system.repl :refer [set-init! start]]
-            [tully.systems :refer [dev-system]]
-            [tully.db :as db]
-            [com.stuartsierra.component :as component]
-            )
-  (:gen-class))
+  (:gen-class)
+  (:require [system.repl :refer [set-init! start]]
+            [tully.systems :refer [dev-system]]))
 
 (defn -main
   "Start a dev system"
