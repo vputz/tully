@@ -1,13 +1,20 @@
 (ns tully.metrics-manager
   (:require [clojure.string :as str]
+            [clojure.walk :refer [keywordize-keys]]
             [clojurewerkz.quartzite
              [conversion :as qc]
              [jobs :as j]
              [scheduler :as qs]
              [triggers :as t]]
+            [com.stuartsierra.component :as component]
             [system.repl :refer [system]]
             [taoensso.timbre :as log]
-            [com.stuartsierra.component :as component]))
+            [clj-time.core :as time]
+            [clj-time.format :as timef]
+            [tully
+             [influx]
+             [scholar :as scholar]]
+            [tully.db :as db]))
 
 ;; consider reimplementing https://github.com/danielsz/system/blob/master/src/system/components/quartzite.clj
 
@@ -21,15 +28,92 @@
 
 (j/defjob get-metrics-job
   [ctx]
-  (let [m (qc/from-job-data ctx)]
-    (log/debug "Running get-metrics job with data " m)))
+  (let [m (qc/from-job-data ctx)
+        doi (get m "doi")
+        client (keywordize-keys (get m "client"))]
+    (do 
+      (log/debug "Running get-metrics job with data " m)
+      (let [cites (scholar/doi-cites doi)]
+        (tully.influx/add-scholar-cites client doi cites)))))
 
 (defn build-metrics-request
-  [doi]
+  [doi client]
   (j/build
    (j/of-type get-metrics-job)
-   (j/using-job-data {"doi" doi})
+   (j/using-job-data {"doi" doi "client" client})
    (j/with-identity (j/key (str/join ["jobs.get-metrics." doi])))))
+
+
+
+
+
+(defn due-dois
+  "Returns a sequence of DOIs which are due for updates, in order"
+  [dois timestamps now interval]
+  (let [pairs (map vector dois timestamps)
+        interval-start (time/minus now interval)
+        due-pairs (filter #(time/before? (second %) interval-start) pairs)]
+    (->> due-pairs
+       (sort #(time/after? (second %1) (second %2)))
+       (map first))))
+
+(defn mult-interval-from
+  "Returns a time which is 'n' 'interval's from 't"
+  [n interval t]
+  (if (= 0 n)
+    t
+    (apply (partial time/plus t) (repeat n interval))))
+
+
+(defn build-simple-trigger
+  "Builds a simple trigger for scheduling one job at a particular n intervals from now"
+  [multiple doi interval]
+  (let [start-time (mult-interval-from multiple interval (time/now))
+        trigger-name (str/join "." ["trigger" doi])]
+    (log/debug "Building simple trigger with start time " start-time " and trigger name " trigger-name)
+    (t/build
+     (t/with-identity (t/key trigger-name))
+     (t/start-at start-time))))
+
+
+(j/defjob schedule-metrics-job
+  [ctx]
+  (let [m (qc/from-job-data ctx)
+        client (keywordize-keys (get m "client"))
+        doi-db (get m "db")
+        scheduler (get m "scheduler")
+        interval (get m "recent-interval")
+        interval-between (get m "interval-between-requests")
+        all-dois (db/get-all-dois doi-db)
+        doi-stamps (map #(tully.influx/scholar-last-timestamp client %) all-dois)
+        due (due-dois all-dois doi-stamps (time/now) interval)
+        jobs (map #(build-metrics-request % client) due)
+        triggers (map-indexed #(build-simple-trigger %1 %2 interval-between) due)
+        jobpairs (map vector jobs triggers)
+        ]
+    (log/debug "Scheduling dois " (str/join " " (doall all-dois)))
+    (log/debug "with timestamps " (str/join " " (doall doi-stamps)))
+    (log/debug "Due: " (str/join " " (doall due)))
+    (log/debug "Jobs: " (str/join " " (doall jobs)))
+    (log/debug "Triggers: " (str/join " " (doall triggers)))
+    (log/debug "Pairs: " (str/join " " (doall jobpairs)))
+    (doall (map #(qs/schedule scheduler (first %) (second %)) jobpairs))
+    ))
+
+(defn build-schedule-metrics-request
+  "Builds a 'schedule metrics gathering' request"
+  [client db scheduler recent-interval interval-between-requests]
+  (j/build
+   (j/of-type schedule-metrics-job)
+   (j/using-job-data {"client" client
+                      "db" db
+                      "scheduler" scheduler
+                      "recent-interval" recent-interval
+                      "interval-between-requests" interval-between-requests})
+   (j/with-identity (j/key (str/join "." ["jobs.schedule-metrics"
+                                          (timef/unparse (:date-time timef/formatters) (time/now))]))))
+  )
+
 
 (defn submit-job-now
   [job id]
@@ -37,9 +121,7 @@
         trigger (t/build
                  (t/with-identity (t/key id))
                  (t/start-now))]
-    (qs/schedule s job trigger))
-  
-  )
+    (qs/schedule s job trigger)))
 
 
 ;; # The Schedule #

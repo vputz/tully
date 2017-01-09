@@ -3,7 +3,9 @@
             [taoensso.timbre :as log]
             [taoensso.sente :as sente]
             [tully-cljs.chsk :as chsk]
-            [re-frame.core :refer [subscribe dispatch]]))
+            [re-frame.core :refer [subscribe dispatch]]
+            [cljsjs.d3]
+            [clojure.string :as str]))
 
 ;; Form-1 component : return the rendered html
 ;; Form-2 component : a let- introduces local state, then return a function which renders
@@ -165,3 +167,94 @@
   []
   [:div
    [groups-list]])
+
+;; # On D3 Components in Clojure/re-frame #
+;; This is a bit of confusion.  The best tutorial I've found on the subject leverages
+;; React's lifecycle functions as in http://www.szakmeister.net/blog/2015/nov/26/clojurescript-d3-and-reagent/
+;; to create the component and then render afterward
+
+(defn graph-component
+  "A citation graph component; should handle multiple series in the form of bar graphs"
+  [width height points]
+  (let [dom-node (reagent/atom nil)]
+    (reagent/create-class
+     {:reagent-render
+      (fn [xs ys]
+        ;; we cannot render D3 at this point; must wait for the update.  So include
+        ;; the node so that reagent can see we deepnd on it, but jus create stubs
+        (log/debug "reagent-render for graph")
+        @dom-node
+        [:div.graph [:svg {:width width :height height}]]
+        )
+
+      :component-did-mount
+      (fn [this]
+        (let [node (reagent/dom-node this)]
+          ;; this should trigger a rerender of the component
+          (log/debug "component-did-mount for graph")
+          (reset! dom-node node)))
+
+      :component-did-update
+      (fn [this old-argv]
+        (let [[_ chartwidth chartheight points] (reagent/argv this)
+              jpoints (clj->js points)]
+          (log/debug "component-did-update for graph:" points)
+          ;; this is where we actually render the graph
+          (let [margin {:top 20 :right 20 :bottom 30 :left 50}
+                tparse (.. js/d3
+                          (timeParse "Y%-%m-YdT%H:%M:%S.%LZ"))
+                doi-keys (clj->js (vec (disj (set (keys points)) :t)))
+                stack (.. js/d3
+                         stack
+                         (keys doi-keys))
+                width (- chartwidth (:left margin) (:right margin))
+                height (- chartheight (:top margin) (:bottom margin))
+                xscale (.. js/d3
+                          scaleTime
+                          (domain #js [0 5])
+                          (rangeRound #js [0 width]))
+                yscale (.. js/d3
+                          scaleLinear
+                          (domain #js [0 10])
+                          (rangeRound #js [height 0]))
+                xaxis (.. js/d3
+                         axisBottom
+                         (scale xscale)
+                         (tickSize 5))
+                yaxis (.. js/d3
+                         axisLeft
+                         (scale yscale)
+                         )
+                vis (.. js/d3
+                       (select @dom-node)
+                       (select "svg"))
+                g (.. vis
+                     (append "g")
+                     (attr "transform" (str/join ["translate(" (:left margin) "," (:top margin) ")"]))
+                     )
+                line (.. js/d3
+                        line
+                        (x (fn [d] (xscale (.-x d))))
+                        (y (fn [d] (yscale (.-y d)))))]
+            (.. vis
+               (attr "width" chartwidth)
+               (attr "height" chartheight))
+            (.. g
+               (append "g")
+               (attr "class" "axis axis--x")
+               (attr "transform" (str/join ["translate(0," height ")"]))
+               (call xaxis))
+            (.. g
+               (append "g")
+               (attr "class" "axis axis--y")
+               (call yaxis))
+            (.. g
+               (append "path")
+               (datum jpoints)
+               (attr "fill" "none")
+               (attr "stroke" "steelblue")
+               (attr "stroke-width" "1.5px")
+               (attr "d" line))
+            )
+          ))
+      })))

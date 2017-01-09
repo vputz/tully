@@ -94,7 +94,7 @@
                        {:influx-component :influx
                         :request-chan :metrics-request-chan})
 
-   :metrcis-manger (component/using
-                    (new-metrics-manager)
-                    [:store :influx :schedler :metrics-requester])
+   :metrics-manager (component/using
+                     (new-metrics-manager)
+                     [:store :influx :scheduler :metrics-requester])
    ])

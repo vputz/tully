@@ -1,7 +1,9 @@
-; nothing
+                                        ; nothing
 
 (set-env! :dependencies '[[org.clojure/clojure "1.9.0-alpha13"]
                           [org.clojure/tools.reader "1.0.0-beta3"]
+                          [clj-time "0.8.0"]
+                          [cljsjs/d3 "4.3.0-2"]
                           [com.taoensso/timbre "4.8.0"]
                           [com.taoensso/sente "1.11.0"]
                           [com.taoensso/encore "2.88.1"]
@@ -69,7 +71,7 @@
                  :web-port "3001"
                  :influx-host "127.0.0.1"
                  :influx-port "8086"
-                 :influx-db "tully-metrics"})  )
+                 :influx-db "tullymetrics"})  )
 
 (deftask unit-tests
   "Run basic unit tests"

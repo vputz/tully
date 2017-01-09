@@ -18,3 +18,14 @@
 - to access system from repl, (require '[system.repl :as repl]) and then
   refer to repl/system
 - to reload, (use 'namespace :reload) or (use 'namespace :reload-all)
+- to run tests, require the right namespaces and run-tests from clojure.test, then (run-tests 'namespace)
+- to remove aliases from namespace, (ns-unmap *ns* 'symbol)
+- to set level for timbre, (log/merge-config! {:level :debug}
+- Timbre's current config: (prn log/*config*)
+- Pretty-print require clojure.pprint :refer [pprint]
+- http://www.szakmeister.net/blog/2015/nov/26/clojurescript-d3-and-reagent/
+- https://github.com/zachcp/simplecomponent/blob/master/src/simplecomponent/core.cljs
+- https://www.sitepoint.com/how-react-makes-your-d3-better/
+- https://github.com/cljsjs/packages/blob/master/d3/resources/cljsjs/d3/common/d3.ext.js for namespace issues
+- SELECT * from scholar_cites WHERE doi=~ /10.1007\/s10955-009-9826-x|10.1039\/C0SM00164C/ (escape backslashes, use regex)
+- SELECT mean(value) from scholar_cites WHERE doi=~ /10.1007\/s10955-009-9826-x|10.1039\/C0SM00164C/ AND time > now() - 5d GROUP BY doi,time(1d) fill(0)
