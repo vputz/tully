@@ -6,5 +6,10 @@
 (defn groups
   [db _]
   (:groups db))
-(reg-sub :groups groups)
 
+(defn group-metrics
+  [db _]
+  (:group-metrics db))
+
+(reg-sub :groups groups)
+(reg-sub :group-metrics group-metrics)

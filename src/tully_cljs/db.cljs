@@ -20,7 +20,11 @@
 (s/def ::papers (s/map-of ::paper-id ::paper))
 (s/def ::group (s/keys :req-un [::_id ::desc ::papers]))
 (s/def ::groups (s/map-of ::_id ::group))
-(s/def ::db (s/keys :req-un [::groups]))
+(s/def ::group-metric-entry (s/keys :req-un [::t]))
+(s/def ::group-metric-data (s/coll-of ::group-metric-entry))
+(s/def ::group-metric (s/keys :req-un [::_id ::desc ::metrics]))
+(s/def ::group-metrics (s/map-of ::_id ::group-metric))
+(s/def ::db (s/keys :req-un [::groups ::group-metrics]))
 
 (def default-value
   {:groups (sorted-map)})

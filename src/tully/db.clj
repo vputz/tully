@@ -108,6 +108,15 @@
     (mc/insert db "sets" new-set)
     (mc/update db "users" {:name username} {mo/$addToSet {:sets new-id}})))
 
+(defn group-dois
+  "Gets a vector of DOIs in a group by id"
+  [db group-id]
+  (let [group (mc/find-map-by-id db "sets" group-id)
+        papers (:papers group)
+        dois (map :doi papers)]
+    dois))
+
+
 (defn get-all-dois
   "Retrieve a set of all DOIs in the database"
   [db]

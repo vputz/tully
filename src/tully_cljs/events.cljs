@@ -9,10 +9,15 @@
 ;; interceptor allows us to check the db's spec
 (def check-spec-interceptor (after (partial check-and-throw :tully-cljs.db/db)))
 
-(def tully-interceptors [check-spec-interceptor
-                         (path :groups)
-                         (when ^boolean js/goog.DEBUG debug)
-                         trim-v])
+(def groups-interceptors [check-spec-interceptor
+                          (path :groups)
+                          (when ^boolean js/goog.DEBUG debug)
+                          trim-v])
+
+(def metrics-interceptors [check-spec-interceptor
+                           (path :group-metrics)
+                           (when ^boolean js/goog.DEBUG debug)
+                           trim-v])
 
 ;; from clojure.core.incubator,
 ;; https://github.com/clojure/core.incubator/blob/master/src/main/clojure/clojure/core/incubator.clj
@@ -34,7 +39,7 @@
  :delete-group
  [trim-v]
  (fn [cofx [group-id]]
-   (log/info "Deleting group " group-id)
+   (log/debug "Deleting group " group-id)
    (let [db (:db cofx)
          groups (:groups db)
          newgroups (dissoc groups group-id)]
@@ -46,23 +51,29 @@
  :delete-doi-from-group
  [trim-v]
  (fn [cofx [group-id paper-id]]
-   ;;(log/info "groups: " groups)
-   (log/info "Deleting paper " paper-id " from group " group-id)
+   ;;(log/debug "groups: " groups)
+   (log/debug "Deleting paper " paper-id " from group " group-id)
    (let [db (:db cofx)
          groups (:groups db)
          paper (get-in groups [group-id :papers paper-id])
          newgroups 
          (dissoc-in groups [group-id :papers paper-id])]
-     (log/info "Paper found " paper)
-     (log/info "New groups " newgroups)
+     (log/debug "Paper found " paper)
+     (log/debug "New groups " newgroups)
      {:write-groups newgroups})))
 
 (reg-event-db
+ :initialize-db
+ (fn [db [_ data]]
+   (log/info "Initializing db with " data)
+   data))
+
+(reg-event-db
  :set-groups
- tully-interceptors
+ groups-interceptors
  (fn [groups [newgroups]]
    (do
-     (log/info "Setting groups: " newgroups)
+     (log/debug "Setting groups: " newgroups)
      newgroups)))
 
 (reg-event-fx
@@ -82,13 +93,13 @@
  :change-doi-of-paper
  [trim-v]
  (fn [cofx [group-id paper-id new-doi :as args]]
-   (log/info args)
-   (log/info "Changing paper " paper-id " in group " group-id " doi to " new-doi)
+   (log/debug args)
+   (log/debug "Changing paper " paper-id " in group " group-id " doi to " new-doi)
    (let [db (:db cofx)
          groups (:groups db)
          ]
-     (log/info "groups: " groups)
-     (log/info "group id: " group-id)
+     (log/debug "groups: " groups)
+     (log/debug "group id: " group-id)
      (let [newgroups (assoc-in groups [group-id :papers paper-id :doi] new-doi)]
        {:write-groups newgroups}))))
 
@@ -107,19 +118,19 @@
 (reg-fx
  :create-new-group-in-db
  (fn [group-name]
-   (log/info "Creating new group named " group-name)
+   (log/debug "Creating new group named " group-name)
    (chsk/create-new-group-in-db group-name)))
 
 (reg-fx
  :delete-group
  (fn [group-id]
-   (log/info "Deleting group " group-id " from db")
+   (log/debug "Deleting group " group-id " from db")
    (chsk/delete-group-id-from-db group-id)))
 
 (reg-fx
  :write-groups
  (fn [newgroups]
-   (log/info "Write Groups:" newgroups)
+   (log/debug "Write Groups:" newgroups)
    (chsk/write-user-groups-to-db newgroups)))
 
 (reg-fx
@@ -129,7 +140,14 @@
 
 (reg-event-db
  :set-user-sets-from-db
- tully-interceptors
+ groups-interceptors
  (fn [groups [new-groups]]
-   (log/info "Replacing old groups with new groups " new-groups)
+   (log/debug "Replacing old groups with new groups " new-groups)
    new-groups))
+
+(reg-event-db
+ :set-user-metrics-from-db
+ metrics-interceptors
+ (fn [metrics [new-metrics]]
+   (log/debug "Replacing old metrics with new metrics " new-metrics)
+   new-metrics))

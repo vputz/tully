@@ -100,14 +100,13 @@
           (if @valid-lookup "Add Paper" "Cannot Add")]]])))
 
 (defn group-component [group-id group]
-  (println "Group component " group-id " " (:desc group))
   (fn [group-id group]
     [:div.callout.secondary
      [:div.row
       [:div.large-8.medium-8.columns.groupheader (:desc group)]
       [:div.large-2.medium-2.columns
        [:button.alert.button {:on-click (fn [_]
-                                    (dispatch [:delete-group group-id]))}
+                                          (dispatch [:delete-group group-id]))}
         "Delete Group"]]]
      [:div.row
       [:div.large-4.medium-4.columns.columnheader "DOI"]
@@ -163,15 +162,13 @@
           #(chsk/reset-test-database)}
          "Reset Test Database"]])
 
-(defn app
-  []
-  [:div
-   [groups-list]])
+
 
 ;; # On D3 Components in Clojure/re-frame #
 ;; This is a bit of confusion.  The best tutorial I've found on the subject leverages
 ;; React's lifecycle functions as in http://www.szakmeister.net/blog/2015/nov/26/clojurescript-d3-and-reagent/
 ;; to create the component and then render afterward
+
 
 (defn graph-component
   "A citation graph component; should handle multiple series in the form of bar graphs"
@@ -197,25 +194,34 @@
       :component-did-update
       (fn [this old-argv]
         (let [[_ chartwidth chartheight points] (reagent/argv this)
-              jpoints (clj->js points)]
+              jpoints (clj->js points)
+              times (map :t points)]
           (log/debug "component-did-update for graph:" points)
+          (let [                tparse (.. js/d3
+                                          (timeParse "%Y-%m-%dT%H:%M:%SZ"))
+                begin (tparse (first times))]
+            (log/debug "First time: " (first times) "->" begin))
           ;; this is where we actually render the graph
           (let [margin {:top 20 :right 20 :bottom 30 :left 50}
                 tparse (.. js/d3
-                          (timeParse "Y%-%m-YdT%H:%M:%S.%LZ"))
-                doi-keys (clj->js (vec (disj (set (keys points)) :t)))
-                stack (.. js/d3
-                         stack
-                         (keys doi-keys))
+                          (timeParse "%Y-%m-%dT%H:%M:%SZ"))
+                cdoi-keys (doall (remove #(= :t %) (keys (first points))))
+                doi-keys (clj->js cdoi-keys)
+                stacker (.. js/d3
+                           stack
+                           (keys doi-keys))
+                stacked (stacker jpoints)
                 width (- chartwidth (:left margin) (:right margin))
                 height (- chartheight (:top margin) (:bottom margin))
                 xscale (.. js/d3
                           scaleTime
-                          (domain #js [0 5])
-                          (rangeRound #js [0 width]))
+                          (domain (clj->js (vector (tparse (first times)) (tparse (last times)))))
+                          (rangeRound #js [0 width])
+                                        ;                          (ticks (.. js/d3 timeDay (every 1)))
+                          )
                 yscale (.. js/d3
                           scaleLinear
-                          (domain #js [0 10])
+                          (domain (clj->js [0 (apply max (flatten (js->clj stacked)))]))
                           (rangeRound #js [height 0]))
                 xaxis (.. js/d3
                          axisBottom
@@ -232,10 +238,16 @@
                      (append "g")
                      (attr "transform" (str/join ["translate(" (:left margin) "," (:top margin) ")"]))
                      )
+                areaGenerator (.. js/d3
+                                 area
+                                 (x (fn [d i] (xscale (tparse (nth times i)))))
+                                 (y0 (fn [d] (yscale (first d))))
+                                 (y1 (fn [d] (yscale (second d)))))
                 line (.. js/d3
                         line
                         (x (fn [d] (xscale (.-x d))))
                         (y (fn [d] (yscale (.-y d)))))]
+            (log/debug "Stacked: " (js->clj stacked))
             (.. vis
                (attr "width" chartwidth)
                (attr "height" chartheight))
@@ -249,12 +261,57 @@
                (attr "class" "axis axis--y")
                (call yaxis))
             (.. g
+               (append "g")
+               (selectAll "path")
+               (data stacked)
+               (enter)
                (append "path")
-               (datum jpoints)
-               (attr "fill" "none")
+               (attr "d" areaGenerator)
+               (style "fill" (fn [d i] (.. js/d3 (interpolateCool (float (/ i (count points)))))))
                (attr "stroke" "steelblue")
                (attr "stroke-width" "1.5px")
-               (attr "d" line))
+               (attr "data-legend" (fn [d i] (nth cdoi-keys i)))
+               )
+            (.. vis
+               (append "g")
+               (attr "class" "legend")
+               (attr "transform" (str/join ["translate(" (str (+ 15 (:left margin))) "," (str (:top margin)) ")"] ))
+               (style "font-size" "12px")
+               (call (.-legend js/d3))
+               )
             )
           ))
       })))
+
+(defn group-metrics-graph
+  "A graph showing metrics of the papers in a group"
+  [group-id width height metric]
+  (fn [group-id width height metric]
+    [:div.callout.secondary
+     [:div.row
+      [:div.large-8.medium-8.columns.groupheader (:desc metric)]]
+     [graph-component width height (:metrics metric)]])
+  )
+
+(defn groups-metrics-list
+  [graph-dimensions]
+  (let [group-metrics (subscribe [:group-metrics])]
+    (fn [graph-dimensions]
+      (log/info "Group metrics list for group " @group-metrics)
+      [:div.row
+       (doall (for [[group-id metrics] (apply vector (seq @group-metrics))]
+                (with-meta
+                  [group-metrics-graph group-id (:width graph-dimensions) (:height graph-dimensions) metrics]
+                  {:key (str (.-stringrep group-id) "-metrics")})))])))
+
+
+(defn app
+  []
+  [:div
+   [:ul.tabs {:data-tabs true :id "app-tabs"}
+    [:li.tabs-title.is-active [:a {:href "#groups-panel" :aria-selected "true"}
+                               "Groups"]]
+    [:li.tabs-title [:a {:href "#metrics-panel"} "Metrics"]]]
+   [:div.tabs-content {:data-tabs-content "app-tabs"}
+    [:div.tabs-panel.is-active {:id "groups-panel"} [groups-list]]
+    [:div.tabs-panel {:id "metrics-panel"} [groups-metrics-list {:width 640 :height 320}]]]])

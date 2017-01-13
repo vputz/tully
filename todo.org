@@ -1,3 +1,8 @@
 - views/etc add ObjectID to each row?
 - add reg-sub initialised? (see https://github.com/Day8/re-frame/blob/master/docs/Loading-Initial-Data.md)
 - read https://github.com/Day8/re-frame/blob/master/docs/Subscribing-To-External-Data.md
+
+
+- Metrics query for empty groups returns all the metrics
+- Group with one paper with no metrics returns error ("bad-package")
+- Putting a bad DOI in when one has been looked up does not change the lookup

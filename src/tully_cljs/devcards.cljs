@@ -45,7 +45,19 @@
                                                                   (chsk/ObjectId. "paper 3")
                                                                   {:doi "10.1016/j.chemphys.2010.04.025"
                                                                    :title "CUDA simulations of active dumbbell suspensions"
-                                                                   :did (chsk/ObjectId. "paper 3")}}))})
+                                                                   :did (chsk/ObjectId. "paper 3")}}))
+   :group-metrics (sorted-map (chsk/ObjectId. "Vic's Papers")
+                              (sorted-map :_id (chsk/ObjectId. "Vic's Papers")
+                                          :desc "VPutz's Papers"
+                                          :metrics
+                                          '({"10.1039/C0SM00164C" 0, "10.1007/s10955-009-9826-x" 0, "10.1016/j.chemphys.2010.04.025" 0, :t "2017-01-03T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 0, "10.1007/s10955-009-9826-x" 0, "10.1016/j.chemphys.2010.04.025" 0, :t "2017-01-04T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 0, "10.1007/s10955-009-9826-x" 43.5, "10.1016/j.chemphys.2010.04.025" 0, :t "2017-01-05T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 32, "10.1007/s10955-009-9826-x" 23, "10.1016/j.chemphys.2010.04.025" 18, :t "2017-01-06T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 32, "10.1007/s10955-009-9826-x" 23, "10.1016/j.chemphys.2010.04.025" 18, :t "2017-01-07T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 32, "10.1007/s10955-009-9826-x" 23, "10.1016/j.chemphys.2010.04.025" 18, :t "2017-01-08T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 32, "10.1007/s10955-009-9826-x" 23, "10.1016/j.chemphys.2010.04.025" 18, :t "2017-01-09T00:00:00Z"}
+                                            {"10.1039/C0SM00164C" 32, "10.1007/s10955-009-9826-x" 23, "10.1016/j.chemphys.2010.04.025" 18, :t "2017-01-10T00:00:00Z"})))})
 
 (defn reset-component
   []
@@ -97,24 +109,39 @@
   "Graph component"
   (fn [data-atom _]
     [views/graph-component (:width @data-atom) (:height @data-atom) (:points @data-atom)])
-  {:oldpoints [{:x 1 :y 1} {:x 2 :y 4} {:x 3 :y 9}]
+  {
    :points [{:t "2017-01-04T00:00:00Z" "10.1007/s10955-009-9826-x" 0 "10.1039/C0SM00164C" 0}
-            {:t "2017-01-05T00:00:00Z" "10.1007/s10955-009-9826-x" 1 "10.1039/C0SM00164C" 2}
+            {:t "2017-01-05T00:00:00Z" "10.1007/s10955-009-9826-x" 1 "10.1039/C0SM00164C" 1}
             {:t "2017-01-06T00:00:00Z" "10.1007/s10955-009-9826-x" 2 "10.1039/C0SM00164C" 4}
-            {:t "2017-01-07T00:00:00Z" "10.1007/s10955-009-9826-x" 3 "10.1039/C0SM00164C" 6}
-            {:t "2017-01-08T00:00:00Z" "10.1007/s10955-009-9826-x" 4 "10.1039/C0SM00164C" 8}
-            {:t "2017-01-09T00:00:00Z" "10.1007/s10955-009-9826-x" 5 "10.1039/C0SM00164C" 1}]
-   :width 320
-   :height 240}
-  {:inspect-data true
+            {:t "2017-01-07T00:00:00Z" "10.1007/s10955-009-9826-x" 3 "10.1039/C0SM00164C" 9}
+            {:t "2017-01-08T00:00:00Z" "10.1007/s10955-009-9826-x" 4 "10.1039/C0SM00164C" 16}
+            {:t "2017-01-09T00:00:00Z" "10.1007/s10955-009-9826-x" 5 "10.1039/C0SM00164C" 25}]
+   :width 640
+   :height 320}
+  {:inspect-data false
    :iframe true})
+
+
+(defcard-rg group-metrics-card
+  "Group metrics card"
+  (fn [data-atom _]
+    [views/group-metrics-graph "Vic's Papers" 640 320 (get-in @data-atom [:group-metrics (chsk/ObjectId. "Vic's Papers")])])
+  test-db
+  {:iframe true})
+
+
+(defcard-rg group-metrics-card
+  "All Groups Metrics"
+  [views/groups-metrics-list {:width 640 :height 320}]
+  {}
+  {})
 
 
 (defn ^:export main []
   (enable-console-print!)
   (println "Starting devcard ui")
+  ;;  (setup-example-1)
+  (re-frame/dispatch-sync [:initialize-db test-db])
   (chsk/make-chsk-sockets "devcards")
   (chsk/start-router!)
-  (setup-example-1)
-  (re-frame/dispatch-sync [:initialize-db test-db])
   (dc/start-devcard-ui!))

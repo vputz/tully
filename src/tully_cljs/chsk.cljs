@@ -59,7 +59,8 @@
 (defmethod chsk-event-handler :db/groups-from-db
   [[id data]]
   (log/debugf "chsk-event-handler %s %s" id data)
-  (dispatch [:set-user-sets-from-db (:groups data)]))
+  (dispatch [:set-user-sets-from-db (:groups data)])
+  (dispatch [:set-user-metrics-from-db (:group-metrics data)]))
 
 (defmethod chsk-event-handler :chsk/ws-ping
   []

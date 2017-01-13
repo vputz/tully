@@ -17,13 +17,20 @@
      (.getAttribute "username")
      (cljs.reader/read-string)))
 
+(def empty-db
+  {:groups {}
+   :group-metrics {}})
+
 (defn ^:export main []
   (enable-console-print!)
-  (let [username (get-username)]
-    (chsk/make-chsk-sockets "devcards")
-;    (chsk/wait-for-msg chsk/ch-chsk)
-    (chsk/start-router!))
+  ;;  (let [username (get-username)])
+  ;; enable foundation on our page
+  
+  (dispatch-sync [:initialize-db empty-db])
+  (chsk/make-chsk-sockets "devcards")
+  (chsk/start-router!)
   (reagent/render [tully-cljs.views/app]
-                  (.getElementById js/document "app"))  
- 
-)
+                  (.getElementById js/document "app"))
+  (.. (js/$ js/document)
+     foundation)
+  )

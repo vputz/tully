@@ -17,7 +17,8 @@
             [taoensso.timbre :as log]
             [tully
              [crossref :as crossref]
-             [db :as db]])
+             [db :as db]
+             [influx :as influx]])
   (:import java.net.URI
            org.bson.types.ObjectId))
 
@@ -32,6 +33,7 @@
    [:style {:type "text/css"} "ul {padding-left: 2em }"]
    (include-js "js/vendor/jquery.js")
    (include-js "js/vendor/foundation.min.js")
+   (include-js "js/vendor/d3legend.js")
    [:title title]])
 
 (defn pretty-body [& content]
@@ -122,7 +124,7 @@
    (GET "/main" req
         (friend/authenticated
          (let [username (:identity (friend/current-authentication))]
-           (log/info "Main requested with req " req)
+           (log/debug "Main requested with req " req)
            (html5
             (pretty-head (str/join ["Tully - welcome, " username]))
             [:div {:style {:display "hidden"}
@@ -141,9 +143,9 @@
    (route/not-found "PAGE NOT FOUND")))
 
 (defn tully-credentials [store {:keys [username password] :as user}]
-  (log/info "Called credentials fn with user " username)
+  (log/debug "Called credentials fn with user " username)
   (if-let [user (db/get-verified-user (:db store) username password)]
-    (do (log/info "Found and verified username " (:name user))
+    (do (log/debug "Found and verified username " (:name user))
         (workflows/make-auth {:identity username}))))
 
 (defn secure-routes [{store :store}]
@@ -186,7 +188,7 @@
   [{:as event-msg :keys [event ?reply-fn ?data]}]
   (let [{:keys [user-id]} ?data
         sets (db/get-user-sets-as-map (get-in system [:store :db]) user-id)]
-    (log/info "Sending sets " sets)
+    (log/debug "Sending sets " sets)
     (?reply-fn sets)))
 
 (defmethod event-msg-handler :db/reset-test-database
@@ -196,14 +198,34 @@
 (defmethod event-msg-handler :db/get-title-for-doi
   [{:as event-msg :keys [event ?reply-fn ?data]}]
   (do
-    (log/info "Received get-title-for-doi request with data" ?data)
+    (log/debug "Received get-title-for-doi request with data" ?data)
     (?reply-fn (crossref/sync-title (:doi ?data)))))
+
+
+
+(defn group-to-metric
+  [client group days-period days-interval]
+  (let [dois (map :doi (vals (:papers group)))
+        metrics (influx/group-metrics client dois days-period days-interval)]
+    (assoc (dissoc group :papers) :metrics metrics)))
+
+(defn group-metrics-as-map
+  "Gets the metrics for the given group-ids in the form expected for the front-end db"
+  [client groups days-period days-interval]
+  (reduce-kv (fn [result k v]
+               (assoc result k
+                      (group-to-metric client v days-period days-interval)))
+             {}
+             groups))
+
 
 (defn send-groups [uid]
   (log/debug "Sending groups for uid " uid)
   (let [groups (db/get-user-sets-as-map (get-in system [:store :db]) uid)
+        group-metrics (group-metrics-as-map (get-in system [:influx :client]) groups 30 1)
         chsk-send! (get-in system [:sente :chsk-send!])]
-    (chsk-send! uid [:db/groups-from-db {:groups groups}])))
+    (chsk-send! uid [:db/groups-from-db {:groups groups
+                                         :group-metrics group-metrics}])))
 
 (defmethod event-msg-handler :db/request-user-sets
   [{:as event-msg :keys [event uid]}]
@@ -215,14 +237,14 @@
 (defmethod event-msg-handler :db/write-user-groups-to-db
   [{:as event-msg :keys [event ?reply-fn ?data uid]}]
   (let [sets (map db/set-papers-map-to-set-papers-seq (vals (:groups ?data)))]
-    (log/info "Received write-user-groups-to-db request with data" sets)
+    (log/debug "Received write-user-groups-to-db request with data" sets)
     (db/update-user-sets (get-in system [:store :db]) sets uid)
     (send-groups uid)))
 
 (defmethod event-msg-handler :db/write-new-paper-to-db
   [{:as event-msg :keys [event ?reply-fn ?data uid]}]
   (let [{:keys [group-id paper-doi paper-title]} ?data]
-    (log/info "Received write-new-paper-to-db request with data" ?data)
+    (log/debug "Received write-new-paper-to-db request with data" ?data)
     (db/write-paper-to-group (get-in system [:store :db]) group-id paper-doi paper-title)
     (send-groups uid)
     ))
@@ -230,12 +252,12 @@
 (defmethod event-msg-handler :db/delete-group-id-from-db
   [{:keys [event ?data uid]}]
   (let [{:keys [group-id]} ?data]
-    (log/info "Recieved delete request for group " group-id)
+    (log/debug "Recieved delete request for group " group-id)
     (db/delete-group-id (get-in system [:store :db]) group-id)))
 
 (defmethod event-msg-handler :db/create-new-group-named
   [{:keys [event ?data uid]}]
   (let [{:keys [group-name]} ?data]
-    (log/info "Received create request for group named " group-name)
+    (log/debug "Received create request for group named " group-name)
     (db/create-group-for-user (get-in system [:store :db]) uid group-name)
     (send-groups uid)))
