@@ -70,11 +70,14 @@
   [multiple doi interval]
   (let [start-time (mult-interval-from multiple interval (time/now))
         trigger-name (str/join "." ["trigger" doi])]
-    (log/debug "Building simple trigger with start time " start-time " and trigger name " trigger-name)
+    (log/debug "Building simple trigger (" multiple "x" interval "+" (time/now) ") with start time " start-time " and trigger name " trigger-name)
     (t/build
      (t/with-identity (t/key trigger-name))
      (t/start-at start-time))))
 
+
+
+(declare build-schedule-metrics-request)
 
 (j/defjob schedule-metrics-job
   [ctx]
@@ -90,14 +93,30 @@
         jobs (map #(build-metrics-request % client) due)
         triggers (map-indexed #(build-simple-trigger %1 %2 interval-between) due)
         jobpairs (map vector jobs triggers)
+
+        next-schedule-time (mult-interval-from (count jobs) interval (time/now))
+        next-schedule-job (build-schedule-metrics-request client doi-db scheduler interval interval-between)
+        next-schedule-trigger (t/build
+                               (t/with-identity (t/key "trigger.schedule"))
+                               (t/start-at next-schedule-time))
+        schedule-pair (fn [pair]
+                        (let [job (first pair)
+                              trigger (second pair)]
+                          (log/debug "Scheduling " job " at " trigger)
+                          (try 
+                            (qs/schedule scheduler job trigger)
+                            (catch Exception e (log/error "Exception " e " scheduling " job " at " trigger)))))
         ]
+    (log/debug "Time now " (time/now))
+    (log/debug "Scheduler " scheduler)
     (log/debug "Scheduling dois " (str/join " " (doall all-dois)))
     (log/debug "with timestamps " (str/join " " (doall doi-stamps)))
     (log/debug "Due: " (str/join " " (doall due)))
     (log/debug "Jobs: " (str/join " " (doall jobs)))
     (log/debug "Triggers: " (str/join " " (doall triggers)))
-    (log/debug "Pairs: " (str/join " " (doall jobpairs)))
-    (doall (map #(qs/schedule scheduler (first %) (second %)) jobpairs))
+                                        ;(log/debug "Pairs: " (str/join " " (doall jobpairs)))
+    (doall (map schedule-pair jobpairs))
+    (qs/schedule scheduler next-schedule-job next-schedule-trigger)
     ))
 
 (defn build-schedule-metrics-request
@@ -138,11 +157,6 @@
 ;;    between them.
 ;; 6. Add the scheduling job again at the end.
 
-(j/defjob get-metrics-job
-  [ctx]
-  (let [m (qc/from-job-data ctx)]
-    (log/debug "Running scheduling job with data" m)))
-
 ;; # Scheduler #
 ;; This is a port from
 ;; Danielsz's system library.  His quartzite scheduler takes a scheduler as 
@@ -165,16 +179,27 @@
 (defrecord Metrics-manager
                                         ;    ^{""}
     
-    [store influx scheduler metrics-requester]
+    [store influx scheduler metrics-requester recent-interval interval-between-requests]
   component/Lifecycle
 
   (start [this]
-    (log/info "Starting metrics-manager")
+    (log/debug "Starting metrics-manager")
     ;; drop "start initial schedule project"
+    (let [first-schedule-job (build-schedule-metrics-request
+                              (:client influx)
+                              (:db store)
+                              (:scheduler scheduler)
+                              recent-interval
+                              interval-between-requests)
+          first-schedule-id "schedule.first"
+          first-schedule-trigger (t/build
+                                  (t/with-identity (t/key first-schedule-id))
+                                  (t/start-now))]
+      (qs/schedule (:scheduler  scheduler) first-schedule-job first-schedule-trigger))
     this)
 
   (stop [this]
-    (log/info "Stopping metrics-manager")
+    (log/debug "Stopping metrics-manager")
     this))
 
 (defn new-metrics-manager

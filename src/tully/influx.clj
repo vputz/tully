@@ -6,12 +6,13 @@
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]))
 
-(defrecord Influx [host port db]
+(defrecord Influx [host port db user pass]
   component/Lifecycle
   (start [component]
     (do
       (log/info "Starting influx on host " host " port " port " with db " db)
-      (let [client (cap/make-client {:db db :host host :port port})]
+      (let [client (cap/make-client {:db db :host host
+                                     :port port :username user :password pass})]
         (assoc component :client client))))
 
   (stop [component]
@@ -27,7 +28,9 @@
   ([]
    (map->Influx {}))
   ([host port db]
-   (map->Influx {:host host :port port :db db})))
+   (map->Influx {:host host :port port :db db}))
+  ([host port db user pass]
+   (map->Influx {:host host :port port :db db :user user :pass pass})))
 
 (defn add-doi-cites
   "write a point to the database; will use current time as timestamp"

@@ -43,7 +43,12 @@
       :version "0.0.1"}
  aot {:namespace #{'tully.main}
       :all true}
- jar {:main 'tully.main}
+ jar {:main 'tully.main
+      :file "tully.jar"}
+ web {:serve 'tully.systems/serve-req}
+ war {;:main 'tully.main
+                                        ;:manifest {"Description" "citation metrics tracker"}
+      :file "tully.war"}
  target {:dir #{"target"}}
  (cljs 
   :optimizations :none) )
@@ -65,13 +70,19 @@
   []
   (set-env! :source-paths '#{"src/" "test/"})
   (environ :env {:chromedriver-path "c:\\tools\\selenium\\chromedriver.exe"
-                 :mongo-host "127.0.0.1"
-                 :mongo-port "27017"
-                 :mongo-db "monger-test"
-                 :web-port "3001"
-                 :influx-host "127.0.0.1"
-                 :influx-port "8086"
-                 :influx-db "tullymetrics"})  )
+                 :tully-mongo-host "127.0.0.1"
+                 :tully-mongo-port "27017"
+                 :tully-mongo-db "monger-test"
+                 :tully-mongo-user "tully"
+                 :tully-mongo-pass "tully"
+                 :tully-web-port "3001"
+                 :tully-influx-host "127.0.0.1"
+                 :tully-influx-port "8086"
+                 :tully-influx-user "tully"
+                 :tully-influx-pass "tully"
+                 :tully-influx-db "tullymetrics"
+                 :tully-recent-interval "20"
+                 :tully-interval-between-requests "2"})  )
 
 (deftask unit-tests
   "Run basic unit tests"
@@ -79,6 +90,10 @@
   (comp
    (test-env)
    (test :namespaces '[tully.core-test])))
+
+(deftask uberwar
+  []
+  (comp (aot) (pom) (web) (uber) (war) (target)))
 
 (deftask browser-tests
   "Run selenium browser tests"
@@ -117,12 +132,13 @@
 
 (deftask uberjar []
   "build an uberjar"
-  (comp (aot) (pom) (uber) (jar) (target)))
+  (comp (aot) (pom) (cljs 
+                     :optimizations :none) (uber) (jar) (target)))
 
 ;; https://github.com/danielsz/system/tree/master/examples/boot for example
 
 (swap! boot.repl/*default-dependencies*
-       concat '[[cider/cider-nrepl "0.14.0-snapshot"]
+       concat '[[cider/cider-nrepl "0.14.0"]
                 [refactor-nrepl "2.3.0-SNAPSHOT"]])
 
 (swap! boot.repl/*default-middleware*

@@ -7,6 +7,7 @@
             [com.stuartsierra.component :as component]
             [environ.core :refer [env]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [system.repl :refer [system set-init! start]]
             [system.components
              [endpoint :refer [new-endpoint]]
              [handler :refer [new-handler]]
@@ -20,11 +21,14 @@
              :refer
              [sente-web-server-adapter]]
             [taoensso.timbre :as log]
+            [clj-time.core :as time]
             [tully
              [handler :refer [event-msg-handler* secure-routes]]
              [influx :refer [new-influx-db]]
              [metrics-requester :refer [new-metrics-requester]]
-             [metrics-manager :refer [new-scheduler new-metrics-manager]]])
+             [metrics-manager :refer [new-scheduler
+                                      new-metrics-manager
+                                      map->Metrics-manager]]])
   (:import org.bson.types.ObjectId))
 
 (defrecord Test [msg]
@@ -58,11 +62,25 @@
   (if (re-find #"^-?\d+\.?\d*$" s)
     (edn/read-string s)))
 
+(defn parse-seconds
+  "reads a number from a string; returns clj-time seconds"
+  [s]
+  (-> s
+     parse-number
+     time/seconds))
+
+
+
 (defsystem dev-system
   [;; base infrastructure components
-   :store (new-mongo-db (env :mongo-host) (parse-number (env :mongo-port)) (env :mongo-db) {})
+   :store (new-mongo-db (env :tully-mongo-host)
+                        (parse-number (env :tully-mongo-port))
+                        (env :tully-mongo-db)
+                        {}
+                        (env :tully-mongo-user)
+                        (env :tully-mongo-pass))
    ;; disabled for now for port conflict
-   :influx (new-influx-db (env :influx-host) (parse-number (env :influx-port)) (env :influx-db))
+   :influx (new-influx-db (env :tully-influx-host) (parse-number (env :tully-influx-port)) (env :tully-influx-db))
    :scheduler (new-scheduler)
    ;; disabled for now for restart nullpointerexception
    :middleware (new-middleware {:middleware [[wrap-defaults site-defaults]]})
@@ -78,7 +96,7 @@
              (new-handler)
              [:routes :middleware])
    :web-server (component/using
-                (new-web-server (parse-number (env :web-port)))
+                (new-web-server (parse-number (env :tully-web-port)))
                 [:handler])
    :sente (new-channel-sockets event-msg-handler* sente-web-server-adapter
                                {:packer (sente-transit/get-transit-packer
@@ -95,6 +113,18 @@
                         :request-chan :metrics-request-chan})
 
    :metrics-manager (component/using
-                     (new-metrics-manager)
-                     [:store :influx :scheduler :metrics-requester])
+                     (map->Metrics-manager
+                      {:recent-interval (parse-seconds (env :tully-recent-interval))
+                       :interval-between-requests (parse-seconds (env :tully-interval-between-requests))})
+                     [:store :influx :scheduler :metrics-requester]
+                     )
+   
    ])
+
+(defn serve-req [req]
+  (if (nil? system)
+    (let [system #'dev-system]
+      (set-init! system)
+      (start)))
+  (let [handler (get-in system [:handler :handler])]
+    (handler req)))

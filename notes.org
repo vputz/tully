@@ -29,3 +29,7 @@
 - https://github.com/cljsjs/packages/blob/master/d3/resources/cljsjs/d3/common/d3.ext.js for namespace issues
 - SELECT * from scholar_cites WHERE doi=~ /10.1007\/s10955-009-9826-x|10.1039\/C0SM00164C/ (escape backslashes, use regex)
 - SELECT mean(value) from scholar_cites WHERE doi=~ /10.1007\/s10955-009-9826-x|10.1039\/C0SM00164C/ AND time > now() - 5d GROUP BY doi,time(1d) fill(0)
+- Tutorial for setting up mongo with users: https://www.opsdash.com/blog/howto-setup-mongodb-secure.html
+- influx: https://docs.influxdata.com/influxdb/v1.1/query_language/authentication_and_authorization/#authorization
+
+(influx for ubuntu so old!?)
