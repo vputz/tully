@@ -133,7 +133,7 @@
 (deftask uberjar []
   "build an uberjar"
   (comp (aot) (pom) (cljs 
-                     :optimizations :none) (uber) (jar) (target)))
+                     :optimizations :simple) (uber) (jar) (target)))
 
 ;; https://github.com/danielsz/system/tree/master/examples/boot for example
 
