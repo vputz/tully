@@ -34,6 +34,8 @@
                           [org.danielsz/system "0.3.2-SNAPSHOT"]
                           [clojurewerkz/quartzite "2.0.0"]
                           [webica "3.0.0-beta2-clj0" :scope "test"]
+                          [kibu/pushy "0.3.6"]
+                          [bidi "2.0.16"]
                           [boot-environ "1.1.0"]]
           :source-paths '#{"src/"}
           :resource-paths '#{"resources/"})
@@ -108,9 +110,10 @@
   (comp
    (test-env)   
    (watch :verbose true)
+   (speak)
    (cljs 
     :optimizations :none)
-;;   (target :dir #{"target"})
+   ;;   (target :dir #{"target"})
    (system :sys #'dev-system
            :auto true
            :files ["handler.clj" "systems.clj" "db.clj"])
@@ -133,7 +136,7 @@
 (deftask uberjar []
   "build an uberjar"
   (comp (aot) (pom) (cljs 
-                     :optimizations :none) (uber) (jar) (target)))
+                     :optimizations :advanced) (uber) (jar) (target)))
 
 ;; https://github.com/danielsz/system/tree/master/examples/boot for example
 

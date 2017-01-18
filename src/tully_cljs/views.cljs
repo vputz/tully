@@ -3,6 +3,7 @@
             [taoensso.timbre :as log]
             [taoensso.sente :as sente]
             [tully-cljs.chsk :as chsk]
+            [tully-cljs.routes :as routes]
             [re-frame.core :refer [subscribe dispatch]]
             [cljsjs.d3]
             [clojure.string :as str]))
@@ -101,25 +102,28 @@
 
 (defn group-component [group-id group]
   (fn [group-id group]
-    [:div.callout.secondary
-     [:div.row
-      [:div.large-8.medium-8.columns.groupheader (:desc group)]
-      [:div.large-2.medium-2.columns
-       [:button.alert.button {:on-click (fn [_]
-                                          (dispatch [:delete-group group-id]))}
-        "Delete Group"]]]
-     [:div.row
-      [:div.large-4.medium-4.columns.columnheader "DOI"]
-      [:div.large-8.medium-8.columns.columnheader  "Title"]]
-     ;; use vector below instead of seq because seq is lazy and react needs nth-able
-     (for [[paper-id paper] (apply vector (seq (:papers group)))]
-       (do
-         (log/info (.-stringrep paper-id))
-         (with-meta 
-           [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
-           {:key (apply str group-id "-" paper-id)}))
-       )
-     (with-meta [add-paper-component group-id] {:key (apply str group-id "-add-paper")})])
+    [:li.accordion-item {:data-accordion-item true}
+     ;;     [:a.accordion-title {:href "#"} (:desc group)]
+     [:div ;;.accordion-content {:data-tab-content true}
+      [:div.callout.secondary
+       [:div.row
+        [:div.large-8.medium-8.columns.groupheader (:desc group)]
+        [:div.large-2.medium-2.columns
+         [:button.alert.button {:on-click (fn [_]
+                                            (dispatch [:delete-group group-id]))}
+          "Delete Group"]]]
+       [:div.row
+        [:div.large-4.medium-4.columns.columnheader "DOI"]
+        [:div.large-8.medium-8.columns.columnheader  "Title"]]
+       ;; use vector below instead of seq because seq is lazy and react needs nth-able
+       (for [[paper-id paper] (apply vector (seq (:papers group)))]
+         (do
+           (log/info (.-stringrep paper-id))
+           (with-meta 
+             [editable-paper-component group-id paper-id (:doi paper) (:title paper)]
+             {:key (apply str group-id "-" paper-id)}))
+         )
+       (with-meta [add-paper-component group-id] {:key (apply str group-id "-add-paper")})]]])
   )
 
 (defn add-new-group-component
@@ -143,7 +147,7 @@
   (let [groups (subscribe [:groups])]
     (fn []
       (log/info "Number of groups: " (count @groups))
-      [:div.row 
+      [:ul.accordion {:data-accordion true  :data-multi-expand true :data-allow-all-closed true}
        (doall (for [[group-id papers] (apply vector (seq @groups))]
                 (doall 
                  (log/info "Group id " (.-stringrep group-id))
@@ -305,13 +309,50 @@
                   {:key (str (.-stringrep group-id) "-metrics")})))])))
 
 
+;; # Panels #
+;; The use of routing and main panels is as described in a blog entry;
+;; see routes.cljs
+
+(defn metrics-panel []
+  (fn []
+    [groups-metrics-list {:width 640 :height 320}]))
+
+(defn groups-panel []
+  (fn []
+    [groups-list]))
+
+(defmulti panels identity)
+
+(defn menubar
+  []
+  (fn []
+    [:div.title-bar.sticky {:data-sticky true
+                            :data-options {:marginTop "0"}
+                            :style {:width "100%"}
+                            :data-top-anchor "1"}
+     [:div.title-bar-left
+      [:ul.dropdown.menu {:data-dropdown-menu true}
+       [:li.menu-text "Tully"]
+       [:li [:a {:href (routes/url-for :groups)} "Groups"]]
+       [:li [:a {:href (routes/url-for :metrics)} "Metrics"]]]]]))
+
+(defmethod panels :metrics-panel [] [metrics-panel])
+(defmethod panels :groups-panel [] [groups-panel])
+
 (defn app
   []
-  [:div
-   [:ul.tabs {:data-tabs true :id "app-tabs"}
-    [:li.tabs-title.is-active [:a {:href "#groups-panel" :aria-selected "true"}
-                               "Groups"]]
-    [:li.tabs-title [:a {:href "#metrics-panel"} "Metrics"]]]
-   [:div.tabs-content {:data-tabs-content "app-tabs"}
-    [:div.tabs-panel.is-active {:id "groups-panel"} [groups-list]]
-    [:div.tabs-panel {:id "metrics-panel"} [groups-metrics-list {:width 640 :height 320}]]]])
+  (let [active-panel (subscribe [:active-panel])]
+    (fn []
+      [:div
+       [:div {:data-sticky-container true}
+        [menubar]]
+       [panels @active-panel]]))
+  ;; [:div
+  ;;  [:ul.tabs {:data-tabs true :id "app-tabs"}
+  ;;   [:li.tabs-title.is-active [:a {:href "#groups-panel" :aria-selected "true"}
+  ;;                              "Groups"]]
+  ;;   [:li.tabs-title [:a {:href "#metrics-panel"} "Metrics"]]]
+  ;;  [:div.tabs-content {:data-tabs-content "app-tabs"}
+  ;;   [:div.tabs-panel.is-active {:id "groups-panel"} [groups-list]]
+  ;;   [:div.tabs-panel {:id "metrics-panel"} [groups-metrics-list {:width 640 :height 320}]]]]
+  )

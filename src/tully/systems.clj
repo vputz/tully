@@ -14,7 +14,7 @@
              [http-kit :refer [new-web-server]]
              [middleware :refer [new-middleware]]
              [mongo :refer [new-mongo-db]]
-             [sente :refer [new-channel-sockets]]]
+             [sente :refer [new-channel-socket-server]]]
             [system.core :refer [defsystem]]
             [taoensso.sente.packers.transit :as sente-transit]
             [taoensso.sente.server-adapters.http-kit
@@ -98,14 +98,15 @@
    :web-server (component/using
                 (new-web-server (parse-number (env :tully-web-port)))
                 [:handler])
-   :sente (new-channel-sockets event-msg-handler* sente-web-server-adapter
-                               {:packer (sente-transit/get-transit-packer
-                                         :json
-                                         {:handlers {ObjectId objectid-writer}}
-                                         {:handlers {"object-id" objectid-reader}}
-                                         )
-                                :user-id-fn (fn [ring-req] (first (str/split (:client-id ring-req) #"-")))
-                                })
+   :sente (new-channel-socket-server event-msg-handler* sente-web-server-adapter
+                                     {:type :auto
+                                      :packer (sente-transit/get-transit-packer
+                                               :json
+                                               {:handlers {ObjectId objectid-writer}}
+                                               {:handlers {"object-id" objectid-reader}}
+                                               )
+                                      :user-id-fn (fn [ring-req] (first (str/split (:client-id ring-req) #"-")))
+                                      })
    
    :metrics-requester (component/using
                        (new-metrics-requester)

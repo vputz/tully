@@ -6,6 +6,7 @@
             [tully-cljs.events]
             [tully-cljs.subs]
             [tully-cljs.chsk :as chsk]
+            [tully-cljs.routes :refer [app-routes]]
             [tully-cljs.views]))
 
 
@@ -19,7 +20,8 @@
 
 (def empty-db
   {:groups {}
-   :group-metrics {}})
+   :group-metrics {}
+   :active-panel :groups-panel})
 
 (defn ^:export main []
   (enable-console-print!)
@@ -29,8 +31,10 @@
   (dispatch-sync [:initialize-db empty-db])
   (chsk/make-chsk-sockets "devcards")
   (chsk/start-router!)
+  (app-routes)
   (reagent/render [tully-cljs.views/app]
                   (.getElementById js/document "app"))
+  (log/debug "Running foundation on document")
   (.. (js/$ js/document)
      foundation)
   )

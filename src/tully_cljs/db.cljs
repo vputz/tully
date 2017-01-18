@@ -24,7 +24,7 @@
 (s/def ::group-metric-data (s/coll-of ::group-metric-entry))
 (s/def ::group-metric (s/keys :req-un [::_id ::desc ::metrics]))
 (s/def ::group-metrics (s/map-of ::_id ::group-metric))
-(s/def ::db (s/keys :req-un [::groups ::group-metrics]))
+(s/def ::db (s/keys :req-un [::groups ::group-metrics ::active-panel]))
 
 (def default-value
   {:groups (sorted-map)})

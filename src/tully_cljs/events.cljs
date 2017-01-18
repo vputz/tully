@@ -9,15 +9,20 @@
 ;; interceptor allows us to check the db's spec
 (def check-spec-interceptor (after (partial check-and-throw :tully-cljs.db/db)))
 
-(def groups-interceptors [check-spec-interceptor
-                          (path :groups)
-                          (when ^boolean js/goog.DEBUG debug)
-                          trim-v])
+(defn db-interceptors
+  "Gets a standard list of interceptors with a given path"
+  [new-path]
+  [check-spec-interceptor
+   (path new-path)
+   (when ^boolean js/goog.DEBUG debug)
+   trim-v])
 
-(def metrics-interceptors [check-spec-interceptor
-                           (path :group-metrics)
-                           (when ^boolean js/goog.DEBUG debug)
-                           trim-v])
+
+(def groups-interceptors (db-interceptors :groups))
+
+(def metrics-interceptors (db-interceptors :group-metrics))
+
+(def panel-interceptors (db-interceptors :active-panel))
 
 ;; from clojure.core.incubator,
 ;; https://github.com/clojure/core.incubator/blob/master/src/main/clojure/clojure/core/incubator.clj
@@ -75,6 +80,14 @@
    (do
      (log/debug "Setting groups: " newgroups)
      newgroups)))
+
+(reg-event-db
+ :set-active-panel
+ panel-interceptors
+ (fn [panel [new-panel]]
+   (do
+     (log/debug "Setting active panel to " new-panel)
+     new-panel)))
 
 (reg-event-fx
  :add-new-paper
