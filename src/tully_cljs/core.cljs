@@ -29,7 +29,10 @@
   ;; enable foundation on our page
   
   (dispatch-sync [:initialize-db empty-db])
-  (chsk/make-chsk-sockets "devcards")
+  ;; get username from server-data element
+  (let [username (.. (js/$ "div#server-data")
+                    (attr "username"))]
+    (chsk/make-chsk-sockets username))
   (chsk/start-router!)
   (app-routes)
   (reagent/render [tully-cljs.views/app]
