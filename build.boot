@@ -112,7 +112,7 @@
    (watch :verbose true)
    (speak)
    (cljs 
-    :optimizations :none)
+    :optimizations :advanced)
    ;;   (target :dir #{"target"})
    (system :sys #'dev-system
            :auto true

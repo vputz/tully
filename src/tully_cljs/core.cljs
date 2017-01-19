@@ -38,6 +38,11 @@
   (reagent/render [tully-cljs.views/app]
                   (.getElementById js/document "app"))
   (log/debug "Running foundation on document")
-  (.. (js/$ js/document)
-     foundation)
+  (let [foundation (aget (js/$ js/document) "foundation")]
+    (log/debug "Foundation: " foundation)
+    (foundation)
+    )
+  ;; (.. (js/$ js/document)
+  ;;    (js/foundation))
   )
+
