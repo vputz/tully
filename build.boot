@@ -83,6 +83,12 @@
                  :tully-influx-user "tully"
                  :tully-influx-pass "tully"
                  :tully-influx-db "tullymetrics"
+                 :tully-log-stdout-level "debug"
+                 :tully-log-file-path "c:\\vputz\\clojure\\tully.log"
+                 :tully-log-file-level "debug"
+                 :tully-log-riemann-host "127.0.0.1"
+                 :tully-log-riemann-port "5555"
+                 :tully-log-riemann-level "info"
                  :tully-recent-interval "20"
                  :tully-interval-between-requests "2"})  )
 
