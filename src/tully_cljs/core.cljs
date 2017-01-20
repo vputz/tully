@@ -29,12 +29,20 @@
   ;; enable foundation on our page
   
   (dispatch-sync [:initialize-db empty-db])
-  (chsk/make-chsk-sockets "devcards")
+  ;; get username from server-data element
+  (let [username (.. (js/$ "div#server-data")
+                    (attr "username"))]
+    (chsk/make-chsk-sockets username))
   (chsk/start-router!)
   (app-routes)
   (reagent/render [tully-cljs.views/app]
                   (.getElementById js/document "app"))
   (log/debug "Running foundation on document")
-  (.. (js/$ js/document)
-     foundation)
+  (let [foundation (aget (js/$ js/document) "foundation")]
+    (log/debug "Foundation: " foundation)
+    (foundation)
+    )
+  ;; (.. (js/$ js/document)
+  ;;    (js/foundation))
   )
+

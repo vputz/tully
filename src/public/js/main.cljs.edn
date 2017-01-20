@@ -5,5 +5,8 @@
            tully-cljs.db
            tully-cljs.events           ]
  :init-fns [tully-cljs.core/main]
- :compiler-options {:asset-path "js/main.out"}
+ :compiler-options {:asset-path "js/main.out"
+                    :output-wrapper true
+                    :externs ["foundation.ext.js"]}
  }
+
