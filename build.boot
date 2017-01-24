@@ -118,7 +118,7 @@
    (watch :verbose true)
    (speak)
    (cljs 
-    :optimizations :advanced)
+    :optimizations :none)
    ;;   (target :dir #{"target"})
    (system :sys #'dev-system
            :auto true

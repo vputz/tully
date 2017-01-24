@@ -25,6 +25,7 @@
             [tully
              [handler :refer [event-msg-handler* secure-routes]]
              [influx :refer [new-influx-db]]
+             [log-system :refer [new-log-system]]
              [metrics-requester :refer [new-metrics-requester]]
              [metrics-manager :refer [new-scheduler
                                       new-metrics-manager
@@ -73,6 +74,12 @@
 
 (defsystem dev-system
   [;; base infrastructure components
+   :log (new-log-system (env :tully-log-stdout-level)
+                        (env :tully-log-file-path)
+                        (env :tully-log-file-level)
+                        (env :tully-log-riemann-host)
+                        (env :tully-log-riemann-port)
+                        (env :tully-log-rimann-level))
    :store (new-mongo-db (env :tully-mongo-host)
                         (parse-number (env :tully-mongo-port))
                         (env :tully-mongo-db)

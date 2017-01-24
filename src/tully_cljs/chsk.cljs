@@ -122,14 +122,15 @@
 (defn reset-test-database []
   (ch-send! [:db/reset-test-database {:user-id "vputz"}] 1000))
 
-(defn get-title-for-doi [doi valid-lookup-atom title-atom]
+(defn get-title-for-doi [doi component-state]
   (ch-send! [:db/get-title-for-doi {:doi doi}] 1000
             (fn [cb-reply]
               (log/debugf "Callback get-title-for-doi: %s" cb-reply)
               (if (sente/cb-success? cb-reply)
                 (do
-                  (reset! title-atom (:title cb-reply))
-                  (reset! valid-lookup-atom (:valid-lookup cb-reply)))
+                  (swap! component-state
+                         merge {:new-paper-title (:title cb-reply)
+                                :valid-lookup (:valid-lookup cb-reply)}))
                 (log/debugf "Error on chsk doi lookup")))))
 
 (defn write-new-paper-to-db [group-id paper-doi paper-title]

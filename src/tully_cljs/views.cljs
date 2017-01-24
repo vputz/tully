@@ -35,7 +35,6 @@
                      {:type "text"
                       :value @val
                       :auto-focus true
-                      :on-blur save
                       :on-change #(reset! val (-> % .-target .-value))
                       :on-key-down #(case (.-which %)
                                      13 (save)
@@ -67,38 +66,43 @@
            :on-stop #(reset! editing false)}])]      )))
 
 (defn add-paper-component [group-id]
-  (let [valid-lookup (reagent/atom false)
-        new-paper-doi (reagent/atom "")
-        new-paper-title (reagent/atom "")]
+  (let [state (reagent/atom {:valid-lookup false
+                             :new-paper-doi ""
+                             :new-paper-title ""})
+        ;; valid-lookup (reagent/atom false)
+        ;; new-paper-doi (reagent/atom "")
+        ;; new-paper-title (reagent/atom "")
+        ]
     (fn [group-id]
-      [:div.row
-        [:div.large-4.medium-4.columns
-         [doi-input-component {:title @new-paper-doi
-                               :on-save #(do (log/info "New paper " %)
-                                             (reset! new-paper-doi %)
-                                             (chsk/get-title-for-doi % valid-lookup new-paper-title))
-                               :on-stop #()}]]
-        [:div.large-6.medium-6.columns @new-paper-title]
-        [:div.large-2.medium-2.columns
-         [:button {:class (if @valid-lookup "button" "disabled")
-                   :disabled (not @valid-lookup)
-                   :on-click (fn [_]
-                               (let [new-doi @new-paper-doi
-                                     new-title @new-paper-title]
-                                 (dispatch [:add-new-paper group-id new-doi new-title]))
-                               
+      (let [{:keys [valid-lookup new-paper-doi new-paper-title]} @state]
+        [:div.row
+         [:div.large-4.medium-4.columns
+          [doi-input-component {:title new-paper-doi
+                                :on-save #(do (log/info "New paper " %)
+                                             (swap! state assoc :new-paper-doi %)
+                                             (chsk/get-title-for-doi % state))
+                                :on-stop #()}]]
+         [:div.large-6.medium-6.columns new-paper-title]
+         [:div.large-2.medium-2.columns
+          [:button {:class (if valid-lookup "button" "disabled")
+                    :disabled (not valid-lookup)
+                    :on-click (fn [_]
+                                (do
+                                  (reset! state {:valid-lookup false
+                                                 :new-paper-doi ""
+                                                 :new-paper-title ""})
+                                  (dispatch [:add-new-paper group-id
+                                             new-paper-doi new-paper-title])))
+                    ;;    :on-click #((log/debug "Sending new paper" group-id @new-paper-doi @new-paper-title)
+                    ;;                                       ;(reset! new-paper-doi "")
+                    ;; ;                                      (reset! new-paper-title "")
+                    ;;  ;                                     (reset! valid-lookup false)
 
-)
-                ;;    :on-click #((log/debug "Sending new paper" group-id @new-paper-doi @new-paper-title)
-;;                                       ;(reset! new-paper-doi "")
-;; ;                                      (reset! new-paper-title "")
-;;  ;                                     (reset! valid-lookup false)
-
-;;                              ; (log/debug "component reset")
-;;                                     ;  (dispatch [:add-new-paper group-id @new-paper-doi @new-paper-title])
-;; )
-                   }
-          (if @valid-lookup "Add Paper" "Cannot Add")]]])))
+                    ;;                              ; (log/debug "component reset")
+                    ;;                                     ;  (dispatch [:add-new-paper group-id @new-paper-doi @new-paper-title])
+                    ;; )
+                    }
+           (if valid-lookup "Add Paper" "Cannot Add")]]]))))
 
 (defn group-component [group-id group]
   (fn [group-id group]
