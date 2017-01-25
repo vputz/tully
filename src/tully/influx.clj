@@ -115,7 +115,7 @@
   (let [edois (map escape-doi dois)
         doi-str (clojure.string/join "|" edois)
         select-str "SELECT mean(value) from scholar_cites"
-        doi-clause (clojure.string/join ["doi=~ /" doi-str "/"])
+        doi-clause (clojure.string/join ["doi=~ /^" doi-str "$/"])
         period-clause (apply str "time > now() - " days-period "d")
         where-clause (apply str "WHERE " doi-clause " AND " period-clause)
         group-clause (apply str "GROUP BY doi, time(" days-interval "d) fill(previous)")

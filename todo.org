@@ -4,7 +4,8 @@
 
 fix
 - Putting a bad DOI in when one has been looked up does not change the lookup
-
+- Adding a new paper should clear the "new paper" thing
+- Add link for reporting defect to github
 
 new
 - Import/export of your data (JSON? CSV?)
