@@ -10,9 +10,10 @@
   component/Lifecycle
   (start [component]
     (do
-      (log/info "Starting influx on host " host " port " port " with db " db)
+      (log/info "Starting influx on host " host " port " port " with db " db ", username " user " password " pass)
       (let [client (cap/make-client {:db db :host host
                                      :port port :username user :password pass})]
+        (log/info "New client: " client)
         (assoc component :client client))))
 
   (stop [component]

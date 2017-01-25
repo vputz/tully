@@ -80,7 +80,7 @@
                         (env :tully-mongo-user)
                         (env :tully-mongo-pass))
    ;; disabled for now for port conflict
-   :influx (new-influx-db (env :tully-influx-host) (parse-number (env :tully-influx-port)) (env :tully-influx-db))
+   :influx (new-influx-db (env :tully-influx-host) (parse-number (env :tully-influx-port)) (env :tully-influx-db) (env :tully-influx-user) (env :tully-influx-pass))
    :scheduler (new-scheduler)
    ;; disabled for now for restart nullpointerexception
    :middleware (new-middleware {:middleware [[wrap-defaults site-defaults]]})
