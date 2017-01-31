@@ -81,6 +81,10 @@
                                 :on-save #(do (log/info "New paper " %)
                                              (swap! state assoc :new-paper-doi %)
                                              (chsk/get-title-for-doi % state))
+                                :on-blur #(let [new-doi (-> % .-target .-value)]
+                                           (do (log/debug {:service :tully/new-paper :description (apply str "value changed to " new-doi)})
+                                               (swap! state assoc :new-paper-doi new-doi)
+                                               (chsk/get-title-for-doi new-doi state)))
                                 :on-stop #()}]]
          [:div.large-6.medium-6.columns new-paper-title]
          [:div.large-2.medium-2.columns
@@ -139,6 +143,7 @@
         [:div.large-8.medium-8.columns
          [doi-input-component {:title @new-group-name
                                :on-save #(reset! new-group-name %)
+                               :on-blur #(reset! new-group-name (.-value (.-target  %)))
                                :on-stop #()}]]
         [:div.large-4.medium-4.columns
          [:button.button {:on-click (fn [_]

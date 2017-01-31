@@ -6,6 +6,28 @@
             [com.stuartsierra.component :as component]
             [taoensso.timbre :as log]))
 
+(defmacro wrap-influx-exception
+  "Wraps calls to influx with a wrapper that logs and rethrows"
+  [& body]
+  `(try
+     ~@body
+     (catch Exception e#
+       (do (log/error {:service :tully/influx :description (.getClass  e#) :cause (.getCause e#) :message (.getMessage e#)})
+           (throw e#)))))
+
+(defn write-point
+  "wrapped cap/write-point for exceptions; done as we only use write-point and query"
+  [client point]
+  (log/info {:service :tully/influx :description "writing" :value point})
+  (wrap-influx-exception (cap/write-point client point)))
+
+(defn db-query
+  "Wrapped cap/db-query for exceptions"
+  [client query-str]
+  (log/info {:service :tully/influx :decrption "query" :value query-str})
+  (wrap-influx-exception (cap/db-query client query-str)))
+
+
 (defrecord Influx [host port db user pass]
   component/Lifecycle
   (start [component]
@@ -36,9 +58,9 @@
 (defn add-doi-cites
   "write a point to the database; will use current time as timestamp"
   [client doi cites metric]
-  (cap/write-point client {:measurement metric
-                           :fields {"value" cites}
-                           :tags {"doi" doi}}))
+  (write-point client {:measurement metric
+                       :fields {"value" cites}
+                       :tags {"doi" doi}}))
 
 (defn add-scholar-cites
   "Adds a Google Scholar citation to the metrics database"
@@ -63,7 +85,7 @@
 (defn all-dois
   "Get a set of all the DOIs in the Influx database"
   [client]
-  (->> (cap/db-query client "SHOW TAG VALUES WITH KEY = doi")
+  (->> (db-query client "SHOW TAG VALUES WITH KEY = doi")
      :results
      (mapcat :series)
      (mapcat :values)
@@ -74,7 +96,7 @@
   "Gets the citation history from scholar measurements"
   [client doi]
   (let [query-string (str "SELECT time,value FROM scholar_cites WHERE doi='" doi "'")
-        query (cap/db-query client query-string)
+        query (db-query client query-string)
         formatter (timef/formatters :date-time)]
     (->> query
        :results
@@ -87,7 +109,7 @@
   "Gets the last timestamp for the given DOI.  If the DOI does not have a timestamp, uses start of the Unix epoch"
   [client doi]
   ( let [query-string (str "SELECT time,value FROM scholar_cites WHERE doi='" doi "' ORDER BY time DESC LIMIT 1")
-         query (cap/db-query client query-string)
+         query (db-query client query-string)
          formatter (timef/formatters :date-time)
          last-stamp 
          (->> query
@@ -142,7 +164,7 @@
   (if (= 0 (count dois))
     []
     (let [query-str (group-metrics-query dois days-period days-interval)
-          query (cap/db-query client query-str)]
+          query (db-query client query-str)]
       ;; by now our query has results in influx-speak; we must organize it to work so that each point
       ;; is a map {:t time doi1 val doi2 val}
       ;; TODO what if there are no useful results?
