@@ -23,7 +23,7 @@
 
 (j/defjob no-op-job
   [ctx]
-  (log/debug "No-op-job"))
+  (log/debug {:event "no-op"}))
 
 
 (j/defjob get-metrics-job
@@ -32,7 +32,7 @@
         doi (get m "doi")
         client (keywordize-keys (get m "client"))]
     (do 
-      (log/debug "Running get-metrics job with data " m)
+      (log/debug {:event "run-get-metrics" :data m})
       (let [cites (scholar/doi-cites doi)]
         (tully.influx/add-scholar-cites client doi cites)))))
 
@@ -70,7 +70,12 @@
   [multiple doi interval]
   (let [start-time (mult-interval-from multiple interval (time/now))
         trigger-name (str/join "." ["trigger" doi])]
-    (log/debug "Building simple trigger (" multiple "x" interval "+" (time/now) ") with start time " start-time " and trigger name " trigger-name)
+    (log/debug {:event "build-simple-trigger"
+                :data {:multiple multiple
+                       :interval interval
+                       :now (time/now)
+                       :start-time start-time
+                       :trigger-name trigger-name}})
     (t/build
      (t/with-identity (t/key trigger-name))
      (t/start-at start-time))))
@@ -102,19 +107,13 @@
         schedule-pair (fn [pair]
                         (let [job (first pair)
                               trigger (second pair)]
-                          (log/debug "Scheduling " job " at " trigger)
+                          (log/debug {:event "scheduling-job" :data {:job job :trigger trigger}})
                           (try 
                             (qs/schedule scheduler job trigger)
-                            (catch Exception e (log/error "Exception " e " scheduling " job " at " trigger)))))
+                            (catch Exception e (log/error {:event "exception" :data {:exception e :job job :trigger trigger}})))))
         ]
-    (log/debug "Time now " (time/now))
-    (log/debug "Scheduler " scheduler)
-    (log/debug "Scheduling dois " (str/join " " (doall all-dois)))
-    (log/debug "with timestamps " (str/join " " (doall doi-stamps)))
-    (log/debug "Due: " (str/join " " (doall due)))
-    (log/debug "Jobs: " (str/join " " (doall jobs)))
-    (log/debug "Triggers: " (str/join " " (doall triggers)))
-                                        ;(log/debug "Pairs: " (str/join " " (doall jobpairs)))
+    (log/debug {:event "scheduling-dois" :data {:dois  all-dois
+                                                :timestamps doi-stamps}})
     (doall (map schedule-pair jobpairs))
     (qs/schedule scheduler next-schedule-job next-schedule-trigger)
     ))
@@ -169,7 +168,8 @@
     (let [s (-> (qs/initialize) qs/start)]
       (assoc component :scheduler s)))
   (stop [component]
-    (qs/shutdown (:scheduler component))
+    (when (:scheduler component)
+      (qs/shutdown (:scheduler component)))
     component))
 
 (defn new-scheduler
@@ -183,7 +183,7 @@
   component/Lifecycle
 
   (start [this]
-    (log/debug "Starting metrics-manager")
+    (log/info {:event "start-metrics-manager"})
     ;; drop "start initial schedule project"
     (let [first-schedule-job (build-schedule-metrics-request
                               (:client influx)
@@ -199,7 +199,7 @@
     this)
 
   (stop [this]
-    (log/debug "Stopping metrics-manager")
+    (log/info {:event "stop-metrics-manager"})
     this))
 
 (defn new-metrics-manager

@@ -343,7 +343,11 @@
       [:ul.dropdown.menu {:data-dropdown-menu true}
        [:li.menu-text "Tully"]
        [:li [:a {:href (routes/url-for :groups)} "Groups"]]
-       [:li [:a {:href (routes/url-for :metrics)} "Metrics"]]]]]))
+       [:li [:a {:href (routes/url-for :metrics)} "Metrics"]]]]
+     [:div.title-bar-right
+      [:ul.dropdown.menu {:data-dropdown-menu true}
+       [:li [:a {:href "https://github.com/vputz/tully/issues"} "Report Issue"]]
+       [:li [:a {:href "/tully/logout"} "Logout"]]]]]))
 
 (defmethod panels :metrics-panel [] [metrics-panel])
 (defmethod panels :groups-panel [] [groups-panel])

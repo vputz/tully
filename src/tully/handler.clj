@@ -115,7 +115,7 @@
              (str/blank? confirm) (redir [:div "Confirmation password required!"])
              :else (let [user (create-user (into {:db store} (select-keys params [:username :password])))]
                      (do 
-                       (log/debug "Handler creating user " user)
+                       (log/debug {:event "create-user" :data user})
                        (db/add-user (:db store) (:identity user) (:password user))
                        (friend/merge-authentication
                         (resp/redirect (context-uri req "/main"))
@@ -124,7 +124,7 @@
    (GET "/main" req
         (friend/authenticated
          (let [username (:identity (friend/current-authentication))]
-           (log/debug "Main requested with req " req)
+           (log/debug {:event "main-requested"})
            (html5
             (pretty-head (str/join ["Tully - welcome, " username]))
             [:div {:style {:display "hidden"}
@@ -143,9 +143,9 @@
    (route/not-found "PAGE NOT FOUND")))
 
 (defn tully-credentials [store {:keys [username password] :as user}]
-  (log/debug "Called credentials fn with user " username)
+  (log/debug {:event "credentials-fn" :data username})
   (if-let [user (db/get-verified-user (:db store) username password)]
-    (do (log/debug "Found and verified username " (:name user))
+    (do (log/debug {:event "found-username" :data (:name user)})
         (workflows/make-auth {:identity username}))))
 
 (defn secure-routes [{store :store}]
@@ -167,28 +167,34 @@
 ;; for a better idea of how these fit together.
 (defmulti event-msg-handler :id)
 (defn event-msg-handler* [{:as event-msg :keys [id ?data event]}]
-  (log/debugf "Event: %s" event)
+  (log/debug {:event "msg-handler" :data event})
   (event-msg-handler event-msg))
+
+
 
 (defmethod event-msg-handler :default
   [{:as event-msg :keys [event id ?data uid ring-req ?reply-fn send-fn client-id]}]
   (let [session (:session ring-req)
         user-id (:uid session)]
-    (log/debugf "Unhandled event: %s for uid %s client-id %s" event uid client-id)
+    (log/debug {:event "unhandled-event" :data {:event event :uid uid :client-id client-id}})
     (when ?reply-fn
       (?reply-fn {:unmatched-event-as-echoed-from-from-server event}))))
+
+(defmethod event-msg-handler :chsk/ws-ping
+  [{:as event-msg :keys [event ?data]}]
+  (log/debug {:event "ws-ping" :data ?data}))
 
 (defmethod event-msg-handler :db/get-objectid
   [{:as event-msg :keys [event ?reply-fn]}]
   (let [return-id  (ObjectId.)]
-    (log/debugf "Requested new object ID, returning %s" return-id)
+    (log/debug {:event "request-new-oid" :data return-id})
     (?reply-fn {:objectid return-id})))
 
 (defmethod event-msg-handler :db/get-user-sets
   [{:as event-msg :keys [event ?reply-fn ?data]}]
   (let [{:keys [user-id]} ?data
         sets (db/get-user-sets-as-map (get-in system [:store :db]) user-id)]
-    (log/debug "Sending sets " sets)
+    (log/debug {:event "sending-sets" :data sets})
     (?reply-fn sets)))
 
 (defmethod event-msg-handler :db/reset-test-database
@@ -198,7 +204,7 @@
 (defmethod event-msg-handler :db/get-title-for-doi
   [{:as event-msg :keys [event ?reply-fn ?data]}]
   (do
-    (log/debug "Received get-title-for-doi request with data" ?data)
+    (log/debug {:event "recv-get-title-doi-req" :data ?data})
     (?reply-fn (crossref/sync-title (:doi ?data)))))
 
 
@@ -220,7 +226,7 @@
 
 
 (defn send-groups [uid]
-  (log/debug "Sending groups for uid " uid)
+  (log/debug {:event "sending-groups" :data uid})
   (let [groups (db/get-user-sets-as-map (get-in system [:store :db]) uid)
         group-metrics (group-metrics-as-map (get-in system [:influx :client]) groups 30 1)
         chsk-send! (get-in system [:sente :chsk-send!])]
@@ -230,21 +236,21 @@
 (defmethod event-msg-handler :db/request-user-sets
   [{:as event-msg :keys [event uid]}]
   (do 
-    (log/debug "User stats requested; sending groups to uid " uid)
+    (log/debug {:event "sending-user-stats" :data {:requesting-uid uid}})
     (send-groups uid)))
 
 
 (defmethod event-msg-handler :db/write-user-groups-to-db
   [{:as event-msg :keys [event ?reply-fn ?data uid]}]
   (let [sets (map db/set-papers-map-to-set-papers-seq (vals (:groups ?data)))]
-    (log/debug "Received write-user-groups-to-db request with data" sets)
+    (log/debug {:event "writing-user-groups" :data sets})
     (db/update-user-sets (get-in system [:store :db]) sets uid)
     (send-groups uid)))
 
 (defmethod event-msg-handler :db/write-new-paper-to-db
   [{:as event-msg :keys [event ?reply-fn ?data uid]}]
   (let [{:keys [group-id paper-doi paper-title]} ?data]
-    (log/debug "Received write-new-paper-to-db request with data" ?data)
+    (log/debug {:event "write-new-paper-to-db" :data ?data})
     (db/write-paper-to-group (get-in system [:store :db]) group-id paper-doi paper-title)
     (send-groups uid)
     ))
@@ -252,12 +258,12 @@
 (defmethod event-msg-handler :db/delete-group-id-from-db
   [{:keys [event ?data uid]}]
   (let [{:keys [group-id]} ?data]
-    (log/debug "Recieved delete request for group " group-id)
+    (log/debug {:event "receive-delete-request" :data group-id})
     (db/delete-group-id (get-in system [:store :db]) group-id)))
 
 (defmethod event-msg-handler :db/create-new-group-named
   [{:keys [event ?data uid]}]
   (let [{:keys [group-name]} ?data]
-    (log/debug "Received create request for group named " group-name)
+    (log/debug {:event "receive-create-request" :data group-name})
     (db/create-group-for-user (get-in system [:store :db]) uid group-name)
     (send-groups uid)))

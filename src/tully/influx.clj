@@ -12,19 +12,19 @@
   `(try
      ~@body
      (catch Exception e#
-       (do (log/error {:service :tully/influx :description (.getClass  e#) :cause (.getCause e#) :message (.getMessage e#)})
+       (do (log/error {:message (.getMessage e#)})
            (throw e#)))))
 
 (defn write-point
   "wrapped cap/write-point for exceptions; done as we only use write-point and query"
   [client point]
-  (log/info {:service :tully/influx :description "writing" :value point})
+  (log/info {:event "writing" :data point})
   (wrap-influx-exception (cap/write-point client point)))
 
 (defn db-query
   "Wrapped cap/db-query for exceptions"
   [client query-str]
-  (log/info {:service :tully/influx :decrption "query" :value query-str})
+  (log/info {:event "query" :data query-str})
   (wrap-influx-exception (cap/db-query client query-str)))
 
 
@@ -32,15 +32,15 @@
   component/Lifecycle
   (start [component]
     (do
-      (log/info "Starting influx on host " host " port " port " with db " db ", username " user " password " pass)
+      (log/info {:event "start" :data {:host host :port port :db db :user user :pass pass}})
       (let [client (cap/make-client {:db db :host host
                                      :port port :username user :password pass})]
-        (log/info "New client: " client)
+        (log/info {:event "new-client" :data client})
         (assoc component :client client))))
 
   (stop [component]
     (do
-      (log/info "Stopping influx")
+      (log/info {:event "stop"})
       (dissoc component :client)
       ;; (-> component
       ;;     (dissoc component :client))
@@ -99,11 +99,11 @@
         query (db-query client query-string)
         formatter (timef/formatters :date-time)]
     (->> query
-       :results
-       (mapcat :series)
-       (mapcat :values)
-       (map #(vector (timef/parse formatter (first %)) (second %)))
-       )))
+         :results
+         (mapcat :series)
+         (mapcat :values)
+         (map #(vector (timef/parse formatter (first %)) (second %)))
+         )))
 
 (defn scholar-last-timestamp
   "Gets the last timestamp for the given DOI.  If the DOI does not have a timestamp, uses start of the Unix epoch"
@@ -113,16 +113,16 @@
          formatter (timef/formatters :date-time)
          last-stamp 
          (->> query
-            :results
-            (mapcat :series)
-            (mapcat :values)
-            (map #(vector (timef/parse formatter (first %)) (second %)))
-            first
-            first
-            )]
-   (if (nil? last-stamp)
-     (time/epoch)
-     last-stamp))
+              :results
+              (mapcat :series)
+              (mapcat :values)
+              (map #(vector (timef/parse formatter (first %)) (second %)))
+              first
+              first
+              )]
+    (if (nil? last-stamp)
+      (time/epoch)
+      last-stamp))
   )
 
 (defn escape-doi
@@ -172,9 +172,9 @@
       ;; :values [[t1, v1] [t2,v2]] but we must get this into the form [{:t t doi1 val1 doi2 val2}] for
       ;; the webpage/d3 stack
       (let [raw-series (-> query
-                          :results
-                          first
-                          :series)]
+                           :results
+                           first
+                           :series)]
         (if (nil? raw-series)
           [] ;; in case nothing is returned (dois that don't have entries)
           (let [vec-series (map influx-time-series-to-vec-series raw-series)

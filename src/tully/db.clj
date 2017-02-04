@@ -7,7 +7,7 @@
   (:import org.bson.types.ObjectId))
 
 (defn make-test-data [db]
-  (log/info "Resetting test data in database")
+  (log/debug {:event "reset-data"})
   (let [userid (ObjectId.)
         test-set-id (ObjectId.)
         sat-set-id (ObjectId.)
@@ -50,7 +50,7 @@
     (when (creds/bcrypt-verify password (:password-hash user)) user)))
 
 (defn add-user [db username password-hash]
-  (log/debug "Creating user " username " with password hash " password-hash " to " db)
+  (log/debug {:event "create-user" :data {:username username :password-hash password-hash}})
   (mc/insert db "users" {:name username :password-hash password-hash :sets []}))
 
 (defn get-sets [db]
@@ -61,7 +61,7 @@
 
 (defn update-user-sets [db sets username]
   (letfn [(update-set [set]
-            (log/info "Updating set " set)
+            (log/debug {:event "update-set" :data set})
             (mc/update-by-id db "sets" (:_id set) set {:upsert true}))]
     (doall
      (map update-set sets))

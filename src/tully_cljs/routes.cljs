@@ -7,9 +7,9 @@
 ;; Routing during the main page interactions is done with bidi and pushy;
 ;; see https://pupeno.com/2015/08/26/no-hashes-bidirectional-routing-in-re-frame-with-bidi-and-pushy/
 
-(def routes ["/main/" {"" :groups
-                       "metrics" :metrics
-                       "options" :options}])
+(def routes ["/tully/main/" {"" :groups
+                             "metrics" :metrics
+                             "options" :options}])
 
 (defn parse-url
   "parse urles using bidi"

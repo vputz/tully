@@ -78,7 +78,7 @@
                         (env :tully-log-file-path)
                         (env :tully-log-file-level)
                         (env :tully-log-riemann-host)
-                        (env :tully-log-riemann-port)
+                        (parse-number (env :tully-log-riemann-port))
                         (env :tully-log-rimann-level))
    :store (new-mongo-db (env :tully-mongo-host)
                         (parse-number (env :tully-mongo-port))

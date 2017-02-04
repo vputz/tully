@@ -4,6 +4,8 @@
                           [org.clojure/tools.reader "1.0.0-beta3"]
                           [clj-time "0.8.0"]
                           [cljsjs/d3 "4.3.0-2"]
+                          [riemann-clojure-client "0.4.4"]
+                          [de.active-group/timbre-riemann "0.2.0"]
                           [com.taoensso/timbre "4.8.0"]
                           [com.taoensso/sente "1.11.0"]
                           [com.taoensso/encore "2.88.1"]

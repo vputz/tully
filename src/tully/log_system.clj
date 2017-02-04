@@ -1,6 +1,7 @@
 (ns tully.log-system
   (:require [taoensso.timbre :as log]
             [taoensso.timbre.appenders.3rd-party.rolling :as rolling]
+            [active.timbre-riemann :as timbre-riemann]
             [com.stuartsierra.component :as component]))
 
 (defrecord Log-system
@@ -12,8 +13,14 @@
           (if (nil? file-path)
             {}
             {:file (rolling/rolling-appender
-                    {:path file-path :pattern :daily})})]
-      (log/merge-config! {:appenders (merge old-appenders file-appender)})
+                    {:path file-path :pattern :daily})})
+          riemann-appender
+          (if (nil? riemann-host)
+            {}
+            {:riemann (timbre-riemann/riemann-appender
+                       {:host riemann-host
+                        :port riemann-port})})]
+      (log/merge-config! {:appenders (merge old-appenders file-appender riemann-appender)})
       (assoc component :old-appenders old-appenders)))
 
   (stop [component]

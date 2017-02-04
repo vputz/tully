@@ -15,7 +15,7 @@
   (http/get (str (crossref-doi-url doi))))
 
 (defn sync-title [doi]
-  (log/info "Getting title for doi " doi)
+  (log/debug {:event "get-title" :data doi})
   (let [resp @(crossref-doi-response doi)]
     (if (= 404 (:status resp))
       {:valid-lookup false :title "Title not found"}

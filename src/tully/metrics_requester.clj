@@ -8,12 +8,12 @@
 (defn process-msg [component msg]
   (if (s/valid? :tully/request-msg msg)
     (do
-      (log/info "processing msg " msg)
+      (log/debug {:event "processing-msg" :data msg})
       (let [{cmd :tully/cmd doi :tully/doi} msg]
         (when (= cmd :tully/get-scholar-count)
-          (log/info "Finding count for doi " doi)
+          (log/debug {:event "finding-count" :data doi})
           (let [cites (scholar/doi-cites doi)]
-            (log/info cites))
+            (log/debug {:event "cites" :data cites}))
           )
         ))
     (log/error "Bad command to requester:" msg)))
@@ -23,24 +23,24 @@
   component/Lifecycle
 
   (start [this]
-    (log/info "Starting metrics requester")
+    (log/debug {:event "starting-metrics-requester"})
     ;; pattern from https://christopherdbui.com/a-tutorial-of-stuart-sierras-component-for-clojure/; perhaps encapsulate
     (let [stop-chan (chan 1)]
       (go-loop []
         (alt!
           request-chan
           ([msg]
-           (log/info "metrics-requester recv " msg)
+           (log/debug {:event "metrics-requester-recv" :data msg})
            (process-msg this msg)
            (recur))
           stop-chan
           ([_]
-           (log/info "metrics-requester recv STOP")
+           (log/debug {:event "metrics-requester-recv" :data "STOP"})
            :no-op))))
     )
 
   (stop [this]
-    (log/info "Stopping metrics requester")
+    (log/debug {:event "metrics-requester-stop"})
     this))
 
 (defn new-metrics-requester []

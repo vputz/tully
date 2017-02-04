@@ -74,6 +74,10 @@
   [{:as event-msg :keys [event]}]
   (log/debugf "Unhandled event: %s" event))
 
+(defmethod event-msg-handler :chsk/ws-ping
+  [{:as event-msg :keys [event ?data]}]
+  (log/debug {:event "ping"}))
+
 (defmethod event-msg-handler :chsk/recv
   [{:as event-msg :keys [event ?data]}]
   (log/debugf "Handled chsk/recv with event %s and data %s" event ?data)
