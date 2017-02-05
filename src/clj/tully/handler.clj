@@ -31,8 +31,6 @@
    (include-css "css/foundation.min.css")
    (include-css "css/tully.css")
    [:style {:type "text/css"} "ul {padding-left: 2em }"]
-   (include-js "js/vendor/jquery.js")
-   (include-js "js/vendor/foundation.min.js")
    (include-js "js/vendor/d3legend.js")
    [:title title]])
 

@@ -4,6 +4,7 @@
                           [org.clojure/tools.reader "1.0.0-beta3"]
                           [clj-time "0.8.0"]
                           [cljsjs/d3 "4.3.0-2"]
+                          [cljsjs/jquery "2.2.4-0"]
                           [riemann-clojure-client "0.4.4"]
                           [de.active-group/timbre-riemann "0.2.0"]
                           [com.taoensso/timbre "4.8.0"]
@@ -19,7 +20,7 @@
                           [re-frame "0.8.0"]
                           [com.cemerick/friend "0.2.3"]
                           [org.clojure/core.async "0.2.391"]
-                          [adzerk/boot-cljs "1.7.228-1"]
+                          [adzerk/boot-cljs "2.0.0-SNAPSHOT"]
                           [adzerk/boot-reload "0.4.12"]
                           [adzerk/boot-test "1.1.2" :scope "test"]
                           [pandeiro/boot-http "0.7.3"]
@@ -39,8 +40,20 @@
                           [kibu/pushy "0.3.6"]
                           [bidi "2.0.16"]
                           [boot-environ "1.1.0"]]
-          :source-paths '#{"src/"}
+          :source-paths '#{"src/clj/" "src/cljs/"}
           :resource-paths '#{"resources/"})
+
+
+
+(require '[boot.repl]
+         '[adzerk.boot-cljs :refer [cljs]]
+         '[adzerk.boot-reload :refer [reload]]
+         '[adzerk.boot-test :refer [test]]
+;         '[pandeiro.boot-http :refer [serve]]
+         '[environ.boot :refer [environ]]
+         '[tully.systems :refer [dev-system]]
+         '[system.boot :refer [system run]]
+         '[tolitius.boot-check :as check])
 
 (task-options!
  pom {:project 'tully
@@ -54,25 +67,13 @@
                                         ;:manifest {"Description" "citation metrics tracker"}
       :file "tully.war"}
  target {:dir #{"target"}}
- (cljs 
-  :optimizations :none) )
-
-(require '[boot.repl]
-         '[adzerk.boot-cljs :refer [cljs]]
-         '[adzerk.boot-reload :refer [reload]]
-         '[adzerk.boot-test :refer [test]]
-;         '[pandeiro.boot-http :refer [serve]]
-         '[environ.boot :refer [environ]]
-         '[tully.systems :refer [dev-system]]
-         '[system.boot :refer [system run]]
-         '[tolitius.boot-check :as check])
-
-()
+ cljs {:optimizations :advanced}
+ )
 
 (deftask test-env
   "Set the testing environment"
   []
-  (set-env! :source-paths '#{"src/" "test/"})
+  (set-env! :source-paths '#{"src/clj/" "src/cljs/" "test/"})
   (environ :env {:chromedriver-path "c:\\tools\\selenium\\chromedriver.exe"
                  :tully-mongo-host "127.0.0.1"
                  :tully-mongo-port "27017"
@@ -144,7 +145,7 @@
 (deftask uberjar []
   "build an uberjar"
   (comp (aot) (pom) (speak) (cljs 
-                     :optimizations :advanced) (uber) (jar) (target)))
+                             :optimizations :advanced) (uber) (jar) (target)))
 
 ;; https://github.com/danielsz/system/tree/master/examples/boot for example
 
